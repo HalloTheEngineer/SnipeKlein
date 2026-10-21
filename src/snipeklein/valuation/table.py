@@ -32,6 +32,10 @@ class Component:
     confidence: float = 1.0
     sample_n: int = 0
     pinned: bool = False
+    # the value in the committed table (data/prices.json) before the harvested
+    # values are merged on top
+    curated_eur: float = 0.0
+    updated_at: str = ""
     patterns: list[tuple[str, re.Pattern[str]]] = field(default_factory=list)
 
     def matches(self, haystack: str) -> bool:
@@ -98,8 +102,12 @@ class PriceTable:
                 aliases=aliases,
                 tdp_w=raw.get("tdp_w"),
                 pinned=bool(raw.get("pinned", False)),
+                # the committed table may already carry a measured value
                 source=str(raw.get("market_source", "curated")),
                 sample_n=int(raw.get("market_samples", 0) or 0),
+                confidence=float(raw.get("market_confidence", 1.0) or 1.0),
+                curated_eur=float(raw.get("fmv_eur", 0.0)),
+                updated_at=str(raw.get("market_observed", "")),
             )
             component.patterns = _build_patterns(aliases)
             components.append(component)

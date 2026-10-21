@@ -4,7 +4,7 @@
 "use strict";
 
 const $ = (sel) => document.querySelector(sel);
-const state = { limit: 50, offset: 0, total: 0 };
+const state = { limit: 50, offset: 0, total: 0, view: "listings", prices: [] };
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -63,14 +63,6 @@ function renderCards(summary) {
   cards.textContent = "";
   const decisions = summary.decisions || {};
   const byOutcome = decisions.by_outcome || {};
-
-  function card(key, value, extra) {
-    const box = el("div", "card");
-    box.appendChild(el("div", "k", key));
-    box.appendChild(el("div", "v", value));
-    if (extra) box.appendChild(el("div", "x", extra));
-    cards.appendChild(box);
-  }
 
   card("decisions", decisions.total || 0, "unique ads");
   card("rejected", byOutcome.rejected || 0, "filtered out");
@@ -288,6 +280,135 @@ function openAd(adId) {
   });
 }
 
+function histogram(prices, median) {
+  const wrap = el("div", "hist");
+  if (!prices.length) return wrap;
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const bins = 12;
+  const counts = new Array(bins).fill(0);
+  for (const price of prices) {
+    const index = max === min ? 0 : Math.min(bins - 1, Math.floor(((price - min) / (max - min)) * bins));
+    counts[index] += 1;
+  }
+  const peak = Math.max(...counts);
+  counts.forEach((count, index) => {
+    const bar = el("div", "bar");
+    bar.style.height = Math.max(3, Math.round((count / peak) * 70)) + "px";
+    if (count) bar.appendChild(el("span", null, count));
+    wrap.appendChild(bar);
+  });
+  return wrap;
+}
+
+function sparkline(points) {
+  const wrap = el("div", "spark");
+  if (!points.length) return wrap;
+  const values = points.map((point) => point.median);
+  const min = Math.min(...values), max = Math.max(...values);
+  points.forEach((point, index) => {
+    const bar = el("div", "bar" + (index === points.length - 1 ? " last" : ""));
+    const height = max === min ? 40 : 8 + Math.round(((point.median - min) / (max - min)) * 40);
+    bar.style.height = height + "px";
+    bar.title = point.day + ": " + point.median + " EUR (" + point.n + ")";
+    wrap.appendChild(bar);
+  });
+  return wrap;
+}
+
+function openPrice(componentId) {
+  const drawer = $("#drawer");
+  $("#scrim").classList.add("open");
+  drawer.classList.add("open");
+  drawer.textContent = "";
+  drawer.appendChild(el("div", "muted", "loading…"));
+
+  api("/api/prices/" + encodeURIComponent(componentId)).then((data) => {
+    const component = data.component || {};
+    drawer.textContent = "";
+
+    const head = el("h2", null, component.label || componentId);
+    drawer.appendChild(head);
+    drawer.appendChild(el("div", "muted mono", component.component_id));
+
+    const badges = el("div");
+    badges.style.margin = "10px 0";
+    badges.appendChild(el("span", "badge b-kind", component.kind || ""));
+    badges.appendChild(document.createTextNode(" "));
+    badges.appendChild(el("span", "badge " + (component.source === "market" ? "b-market" : "b-estimate"),
+      component.source === "market" ? "market value" : "estimate"));
+    drawer.appendChild(badges);
+
+    const list = el("dl", "kv");
+    kv(list, "FMV (effective)", fmtEur(component.fmv_eur));
+    kv(list, "committed table", fmtEur(component.curated_eur));
+    kv(list, "samples behind it", component.sample_n || 0);
+    kv(list, "confidence", component.confidence);
+    kv(list, "last measured", component.updated_at || "-");
+    kv(list, "TDP", component.tdp_w ? component.tdp_w + " W" : "");
+    drawer.appendChild(list);
+
+    if ((component.aliases || []).length) {
+      drawer.appendChild(el("h3", null, "matched aliases"));
+      const chips = el("div");
+      for (const alias of component.aliases) chips.appendChild(el("span", "chip", alias));
+      drawer.appendChild(chips);
+    }
+
+    const distribution = data.distribution || {};
+    drawer.appendChild(el("h3", null, "market samples"));
+    const dist = el("dl", "kv");
+    kv(dist, "count", distribution.count || 0);
+    kv(dist, "min", distribution.min !== null && distribution.min !== undefined ? fmtEur(distribution.min) : "");
+    kv(dist, "median", distribution.median !== null && distribution.median !== undefined ? fmtEur(distribution.median) : "");
+    kv(dist, "max", distribution.max !== null && distribution.max !== undefined ? fmtEur(distribution.max) : "");
+    drawer.appendChild(dist);
+    const prices = (data.samples || []).map((sample) => sample.price);
+    if (prices.length) {
+      drawer.appendChild(histogram(prices, distribution.median));
+    } else {
+      drawer.appendChild(
+        el("div", "muted", "no market samples yet - the harvester has not measured this component")
+      );
+    }
+
+    if ((data.trend || []).length) {
+      drawer.appendChild(el("h3", null, "price trend (daily median)"));
+      drawer.appendChild(sparkline(data.trend));
+      const table = el("table", "mini");
+      const head = el("tr");
+      ["day", "median", "n"].forEach((label) => head.appendChild(el("th", null, label)));
+      table.appendChild(head);
+      for (const point of data.trend.slice().reverse()) {
+        const row = el("tr");
+        row.appendChild(el("td", null, point.day));
+        row.appendChild(el("td", "num", fmtEur(point.median)));
+        row.appendChild(el("td", "num", point.n));
+        table.appendChild(row);
+      }
+      drawer.appendChild(table);
+    }
+
+    if ((data.samples || []).length) {
+      drawer.appendChild(el("h3", null, "the samples"));
+      const table = el("table", "mini");
+      const head = el("tr");
+      ["price", "listing", "date"].forEach((label) => head.appendChild(el("th", null, label)));
+      table.appendChild(head);
+      for (const sample of data.samples) {
+        const row = el("tr");
+        row.appendChild(el("td", "num", fmtEur(sample.price)));
+        row.appendChild(el("td", null, sample.title || "-"));
+        row.appendChild(el("td", null, (sample.at || "").slice(0, 10)));
+        table.appendChild(row);
+      }
+      drawer.appendChild(table);
+    }
+  }).catch((error) => {
+    drawer.textContent = "";
+    drawer.appendChild(el("div", "muted", "could not load the component: " + error.message));
+  });
+}
+
 function closeDrawer() {
   $("#drawer").classList.remove("open");
   $("#scrim").classList.remove("open");
@@ -297,13 +418,114 @@ async function refresh() {
   try {
     const summary = await api("/api/summary");
     renderCards(summary);
-    const payload = await api("/api/ads", Object.assign({ limit: state.limit, offset: state.offset }, filters()));
-    renderRows(payload);
+    if (state.view === "listings") {
+      const payload = await api("/api/ads", Object.assign({ limit: state.limit, offset: state.offset }, filters()));
+      renderRows(payload);
+    } else {
+      const payload = await api("/api/prices");
+      state.prices = payload.prices || [];
+      renderPrices();
+    }
     $("#status").textContent = "updated " + new Date().toLocaleTimeString();
   } catch (error) {
     $("#status").textContent = "error: " + error.message;
   }
 }
+
+function switchView(view) {
+  state.view = view;
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.view === view);
+  });
+  $("#view-listings").hidden = view !== "listings";
+  $("#view-prices").hidden = view !== "prices";
+  $("#filters-listings").hidden = view !== "listings";
+  refresh();
+}
+
+// --- the price table ---
+function priceFilters() {
+  return {
+    q: $("#pq").value.trim().toLowerCase(),
+    kind: $("#pkind").value,
+    source: $("#psource").value,
+  };
+}
+
+function renderPrices() {
+  const filter = priceFilters();
+  let rows = state.prices.filter((row) => {
+    if (filter.kind && row.kind !== filter.kind) return false;
+    if (filter.source && row.source !== filter.source) return false;
+    if (filter.q) {
+      const hay = [row.label, row.component_id, row.kind].concat(row.aliases || []).join(" ").toLowerCase();
+      if (!hay.includes(filter.q)) return false;
+    }
+    return true;
+  });
+
+  const sort = $("#psort").value;
+  rows.sort((a, b) => {
+    if (sort === "value") return b.fmv_eur - a.fmv_eur;
+    if (sort === "name") return a.label.localeCompare(b.label);
+    if (sort === "updated") return String(b.updated_at).localeCompare(String(a.updated_at));
+    return a.kind.localeCompare(b.kind) || b.fmv_eur - a.fmv_eur;
+  });
+
+  const measured = state.prices.filter((row) => row.source === "market").length;
+  const estimated = state.prices.length - measured;
+  const lastHarvest = state.prices.map((row) => row.updated_at).filter(Boolean).sort().pop() || "-";
+  $("#cards").textContent = "";
+  card("components", state.prices.length, "in the effective table");
+  card("measured", measured, "market value");
+  card("estimates", estimated, "no market sample");
+  card("last harvest", (lastHarvest || "-").slice(0, 10), "newest measurement");
+
+  const tbody = $("#price-rows");
+  tbody.textContent = "";
+  for (const row of rows) {
+    const tr = el("tr");
+    const nameCell = el("td");
+    nameCell.appendChild(el("div", null, row.label));
+    nameCell.appendChild(el("div", "muted mono", row.component_id));
+    tr.appendChild(nameCell);
+
+    const kindCell = el("td");
+    kindCell.appendChild(el("span", "badge b-kind", row.kind));
+    tr.appendChild(kindCell);
+
+    tr.appendChild(el("td", "num", fmtEur(row.fmv_eur)));
+
+    const sourceCell = el("td");
+    sourceCell.appendChild(el("span", "badge " + (row.source === "market" ? "b-market" : "b-estimate"),
+      row.source === "market" ? "market" : "estimate"));
+    tr.appendChild(sourceCell);
+
+    tr.appendChild(el("td", "num", row.sample_n || "-"));
+    tr.appendChild(el("td", "muted", row.updated_at ? row.updated_at.slice(0, 10) : "-"));
+    tr.addEventListener("click", () => openPrice(row.component_id));
+    tbody.appendChild(tr);
+  }
+  $("#price-info").textContent = rows.length + " of " + state.prices.length + " components";
+}
+
+function card(key, value, extra) {
+  const box = el("div", "card");
+  box.appendChild(el("div", "k", key));
+  box.appendChild(el("div", "v", value));
+  if (extra) box.appendChild(el("div", "x", extra));
+  $("#cards").appendChild(box);
+}
+
+document.querySelectorAll(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => switchView(tab.dataset.view));
+});
+
+["#pq", "#pkind", "#psource", "#psort"].forEach((sel) => {
+  const node = $(sel);
+  const event = node.tagName === "INPUT" ? "input" : "change";
+  node.addEventListener(event, () => renderPrices());
+});
 
 ["#q", "#outcome", "#stage", "#query_tag", "#hours", "#order"].forEach((sel) => {
   const node = $(sel);

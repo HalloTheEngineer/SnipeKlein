@@ -169,6 +169,14 @@ class PanelHandler(BaseHTTPRequestHandler):
         if path == "/api/prices":
             self._json({"prices": self.data.prices()})
             return
+        if path.startswith("/api/prices/"):
+            component_id = path[len("/api/prices/") :]
+            payload = self.data.price_detail(component_id)
+            if payload is None:
+                self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+                return
+            self._json(payload)
+            return
         if path == "/api/runs":
             self._json({"runs": self.data.runs(limit=_int(query.get("limit"), 25, 1, 200))})
             return

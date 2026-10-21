@@ -205,3 +205,59 @@ def _request(
             return response.status, response.read()
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read()
+
+
+def test_prices_endpoint_returns_the_effective_table(config: Config) -> None:
+    """The panel shows the table the bot values against, not only the DB rows."""
+    data = PanelData(config)
+    try:
+        rows = data.prices()
+        assert len(rows) > 50
+        row = rows[0]
+        for key in (
+            "component_id",
+            "label",
+            "kind",
+            "fmv_eur",
+            "curated_eur",
+            "source",
+            "sample_n",
+            "aliases",
+        ):
+            assert key in row
+        assert {r["source"] for r in rows} <= {"market", "estimate"}
+        assert any(r["source"] == "market" for r in rows)
+        assert any(r["kind"] == "gpu" for r in rows)
+    finally:
+        data.close()
+
+
+def test_price_detail_has_distribution_trend_and_samples(config: Config) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    conn = connect(config.db_path)
+    now = datetime.now(UTC)
+    for day in range(3):
+        for index in range(2):
+            at = (now - timedelta(days=day)).replace(microsecond=0).isoformat()
+            conn.execute(
+                "INSERT INTO price_observations (component_id, price_eur, source, condition, "
+                "observed_at) VALUES (?,?,?,?,?)",
+                ("NVIDIA_RTX_4070_12GB", 500 + day * 10 + index, "kleinanzeigen", "a card", at),
+            )
+    conn.commit()
+    conn.close()
+
+    data = PanelData(config)
+    try:
+        detail = data.price_detail("NVIDIA_RTX_4070_12GB")
+        assert detail is not None
+        assert detail["distribution"]["count"] == 6
+        assert detail["distribution"]["min"] == 500
+        assert detail["distribution"]["max"] == 521
+        assert detail["distribution"]["median"] is not None
+        assert len(detail["trend"]) == 3
+        assert detail["samples"][0]["title"] == "a card"
+        assert data.price_detail("DOES_NOT_EXIST") is None
+    finally:
+        data.close()

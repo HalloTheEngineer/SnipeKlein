@@ -11,6 +11,7 @@
     --green: #3fb950; --yellow: #d29922; --red: #f85149; --grey: #6e7681;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -98,6 +99,32 @@
          background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
   a { color: var(--accent); }
   .pager { display: flex; gap: 8px; align-items: center; padding: 12px 20px; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; padding: 10px 20px 0; }
+  .tab {
+    background: transparent; border: 1px solid transparent; border-bottom: none;
+    color: var(--muted); padding: 7px 14px; border-radius: 6px 6px 0 0; cursor: pointer;
+  }
+  .tab.active { background: var(--panel); border-color: var(--line); color: var(--text); }
+  .b-market { background: #12291f; color: var(--green); border-color: #1f3d2c; }
+  .b-estimate { background: #26221a; color: #d29922; border-color: #3d3524; }
+  .b-kind { background: #1b2230; color: #a5b4fc; border-color: #26334a; }
+  .chip {
+    display: inline-block; padding: 1px 7px; border-radius: 5px; margin: 0 4px 4px 0;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+    font-family: ui-monospace, monospace; font-size: 11px;
+  }
+  .hist { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin: 8px 0 22px; }
+  .hist .bar { flex: 1; background: #2f4a6b; border-radius: 2px 2px 0 0; position: relative; }
+  .hist .bar.mark { background: var(--accent); }
+  .hist .bar span {
+    position: absolute; bottom: -16px; left: 0; right: 0; text-align: center;
+    font-size: 9px; color: var(--muted);
+  }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 60px; margin: 8px 0 4px; }
+  .spark .bar { flex: 1; background: #2f4a6b; border-radius: 2px 2px 0 0; }
+  .spark .bar.last { background: var(--accent); }
+  table.mini { font-size: 12px; margin-top: 6px; }
+  table.mini th, table.mini td { padding: 3px 8px; }
 </style>
 </head>
 <body>
@@ -108,9 +135,14 @@
   <span id="status">loading…</span>
 </header>
 
+<nav class="tabs">
+  <button class="tab active" data-view="listings">Listings</button>
+  <button class="tab" data-view="prices">Prices</button>
+</nav>
+
 <div class="cards" id="cards"></div>
 
-<div class="filters">
+<div class="filters" id="filters-listings">
   <input type="search" id="q" placeholder="search title, id, location…">
   <select id="outcome">
     <option value="">any outcome</option>
@@ -142,24 +174,67 @@
   <button id="reload">reload</button>
 </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>listing</th>
-      <th class="num">price</th>
-      <th>outcome</th>
-      <th>stage</th>
-      <th>reason</th>
-      <th>seen</th>
-    </tr>
-  </thead>
-  <tbody id="rows"></tbody>
-</table>
+<div id="view-listings">
+  <table>
+    <thead>
+      <tr>
+        <th>listing</th>
+        <th class="num">price</th>
+        <th>outcome</th>
+        <th>stage</th>
+        <th>reason</th>
+        <th>seen</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
 
-<div class="pager">
-  <button id="prev">← newer</button>
-  <span id="pageinfo"></span>
-  <button id="next">older →</button>
+  <div class="pager">
+    <button id="prev">← newer</button>
+    <span id="pageinfo"></span>
+    <button id="next">older →</button>
+  </div>
+</div>
+
+<div id="view-prices" hidden>
+  <div class="filters">
+    <input type="search" id="pq" placeholder="search component, id, alias…">
+    <select id="pkind">
+      <option value="">any kind</option>
+      <option value="cpu">cpu</option>
+      <option value="gpu">gpu</option>
+      <option value="ram">ram</option>
+      <option value="storage">storage</option>
+      <option value="board">board</option>
+      <option value="psu">psu</option>
+      <option value="peripheral">peripheral</option>
+    </select>
+    <select id="psource">
+      <option value="">any source</option>
+      <option value="market">market measured</option>
+      <option value="estimate">estimate only</option>
+    </select>
+    <select id="psort">
+      <option value="kind">sort: kind</option>
+      <option value="value">sort: value</option>
+      <option value="name">sort: name</option>
+      <option value="updated">sort: last update</option>
+    </select>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>component</th>
+        <th>kind</th>
+        <th class="num">FMV</th>
+        <th>source</th>
+        <th class="num">samples</th>
+        <th>updated</th>
+      </tr>
+    </thead>
+    <tbody id="price-rows"></tbody>
+  </table>
+  <div class="pager"><span id="price-info"></span></div>
 </div>
 
 <div id="scrim"></div>

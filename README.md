@@ -149,6 +149,29 @@ detail page and an LLM call; the steady state is a few seconds per cycle
 because known ads are skipped.  The LLM rate is capped locally at
 `llm.max_rpm`.
 
+### The price view
+
+The panel has a **Prices** tab with the effective component table - the values
+the bot actually values against:
+
+| column | meaning |
+|---|---|
+| component | the label and the canonical id |
+| kind | cpu, gpu, ram, storage, board, psu, peripheral |
+| FMV | the effective value (the curated table with the harvested values merged on top) |
+| source | `market` when the harvester measured it, `estimate` when it is a hand-set value without a sample |
+| samples | how many market samples stand behind the value |
+
+Clicking a component opens its detail view: the aliases the matcher looks for
+(so you can see a missing alias), the TDP, the distribution of the sampled
+asking prices, the **price trend** (the daily median over the last 14 days) and
+the raw samples - the ad title, the price and the date they were seen.
+
+The values come from the harvester, which measures the second hand market on
+kleinanzeigen itself: one targeted search per component, the asking prices of
+the matching listings, the outliers trimmed (median ± 3·MAD) and an
+`asking_to_sold_factor` of 0.92 applied.
+
 ### The decision panel
 
 Every ad the bot looks at is recorded with the decision it made and why - the

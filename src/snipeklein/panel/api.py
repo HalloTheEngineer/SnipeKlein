@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import statistics
 import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -13,7 +14,8 @@ from ..config import Config
 from ..health import collect_health
 from ..logging_setup import get_logger
 from ..store.decisions import DecisionRepo
-from ..store.repo import AlertRepo, RunRepo, UsageRepo
+from ..store.repo import AlertRepo, PriceRepo, RunRepo, UsageRepo
+from ..valuation.table import PriceTable
 
 log = get_logger("snipeklein.panel.api")
 
@@ -143,10 +145,84 @@ class PanelData:
         return AlertRepo(self.conn).recent(limit=limit)
 
     def prices(self) -> list[dict[str, Any]]:
-        rows = self.conn.execute(
-            "SELECT * FROM price_table ORDER BY fmv_eur DESC"
-        ).fetchall()
-        return [dict(row) for row in rows]
+        """The effective component table - the values the bot actually uses."""
+        table = PriceTable.load(self.config.prices_path, PriceRepo(self.conn).all_prices())
+        rows = []
+        for component in table.components:
+            rows.append(
+                {
+                    "component_id": component.id,
+                    "label": component.label,
+                    "kind": component.kind,
+                    "fmv_eur": round(component.fmv_eur, 2),
+                    "curated_eur": round(component.curated_eur, 2),
+                    "source": "market" if component.source == "kleinanzeigen" else "estimate",
+                    "sample_n": component.sample_n,
+                    "confidence": round(component.confidence, 3),
+                    "pinned": component.pinned,
+                    "aliases": component.aliases,
+                    "tdp_w": component.tdp_w,
+                    "updated_at": component.updated_at,
+                }
+            )
+        rows.sort(key=lambda row: (str(row["kind"]), -float(str(row["fmv_eur"]))))
+        return rows
+
+    def price_detail(self, component_id: str) -> dict[str, Any] | None:
+        """A component with its market samples, distribution and trend."""
+        component = None
+        for row in self.prices():
+            if row["component_id"] == component_id:
+                component = row
+                break
+        if component is None:
+            return None
+
+        samples = [
+            {
+                "price": float(row["price_eur"]),
+                "title": row["condition"] or "",
+                "at": row["observed_at"],
+            }
+            for row in self.conn.execute(
+                "SELECT price_eur, condition, observed_at FROM price_observations "
+                "WHERE component_id = ? ORDER BY observed_at",
+                (component_id,),
+            )
+        ]
+        prices = [sample["price"] for sample in samples]
+        by_day: dict[str, list[float]] = {}
+        for sample in samples:
+            day = sample["at"][:10]
+            by_day.setdefault(day, []).append(sample["price"])
+
+        trend = [
+            {
+                "day": day,
+                "median": round(statistics.median(values), 2),
+                "n": len(values),
+            }
+            for day, values in sorted(by_day.items())[-14:]
+        ]
+
+        distribution: dict[str, Any] = {"count": len(prices)}
+        if prices:
+            distribution.update(
+                {
+                    "min": round(min(prices), 2),
+                    "median": round(statistics.median(prices), 2),
+                    "max": round(max(prices), 2),
+                }
+            )
+        else:
+            distribution.update({"min": None, "median": None, "max": None})
+
+        return {
+            "component": component,
+            "distribution": distribution,
+            "trend": trend,
+            "samples": list(reversed(samples[-50:])),
+        }
 
     def runs(self, limit: int = 25) -> list[dict[str, Any]]:
         rows = self.conn.execute(
