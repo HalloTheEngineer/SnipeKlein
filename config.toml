@@ -1,0 +1,99 @@
+# SnipeKlein configuration (non-secret).
+# Secrets live in .env (see .env.example).
+
+[general]
+timezone = "Europe/Berlin"
+db_path = "data/snipeklein.db"
+log_level = "INFO"
+# Retention for the seen-id store (spec 3.3)
+seen_ttl_days = 30
+
+[ingestion]
+base_url = "https://www.kleinanzeigen.de"
+impersonate = "chrome131"
+user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+accept_language = "de-DE,de;q=0.9"
+request_timeout_s = 30
+max_retries = 3
+# Global politeness: minimum seconds between two HTTP requests to the site.
+min_request_interval_s = 2.0
+# Randomized poll cadence (spec 3.2)
+poll_interval_min_s = 45
+poll_interval_max_s = 85
+# Optional EU/German residential proxy (spec 3.1)
+proxy_url = ""
+
+[[queries]]
+tag = "pc-gaming-ddr5"
+category = "pcs"
+category_id = 228
+keywords = ["gaming pc", "gaming pc ddr5", "rtx 4070", "rtx 4080"]
+min_price = 300
+max_price = 1800
+max_pages = 1
+
+[[queries]]
+tag = "pc-complettsystem"
+category = "pcs"
+category_id = 228
+keywords = ["pc komplett", "komplett pc", "gaming pc komplett"]
+min_price = 300
+max_price = 2000
+max_pages = 1
+
+[[queries]]
+tag = "gpu-rtx40"
+category = "grafikkarten"
+category_id = 225
+keywords = ["rtx 4070", "rtx 4080", "rtx 4070 super"]
+min_price = 200
+max_price = 900
+max_pages = 1
+
+[filters]
+# Hard requirement of the current target profile.
+required_ram_generation = "DDR5"
+# Coarse margin (in percent) that a listing must reach in the cheap triage
+# stage before we spend a detail fetch + an LLM call on it.
+triage_min_margin_pct = 15.0
+# Minimum number of recognized components for the triage stage.
+triage_min_components = 2
+
+[storage]
+# Retention for the local database (pruned by `snipeklein prune` and by the
+# poll loop).
+observation_retention_days = 30
+listing_retention_days = 30
+
+[valuation]
+bundle_discount = 0.12
+min_coverage = 0.75
+actionable_margin_min_pct = 30.0
+actionable_margin_max_pct = 55.0
+extreme_margin_pct = 60.0
+asking_to_sold_factor = 0.92
+min_price_samples = 5
+
+[llm]
+provider = "gemini"
+model = "gemini-3.5-flash-lite"
+fallback_model = "gemini-3.1-flash-lite"
+base_url = ""
+api_key_env = "GEMINI_API_KEY"
+thinking_level = "minimal"
+max_rpm = 6
+max_attempts = 4
+timeout_s = 45
+# Keep the system prompt + schema cached server-side (context caching).
+enable_context_cache = true
+
+[notify]
+webhook_url_env = "DISCORD_WEBHOOK_URL"
+username = "SnipeKlein"
+# Re-send an alert when the computed payload changed (e.g. refreshed FMV table).
+repeat_on_change = false
+
+[risk]
+account_new_days = 30
+account_very_new_days = 90
+max_active_ads = 10

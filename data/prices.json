@@ -1,0 +1,1127 @@
+{
+  "version": "2026-10-20",
+  "currency": "EUR",
+  "note": "Rolling second-hand FMV. 'aliases' are matched case/space insensitive against extracted model strings; 'pinned' rows are never overwritten by the harvester.",
+  "components": [
+    {
+      "id": "AMD_RYZEN_5_7600X",
+      "kind": "cpu",
+      "label": "AMD Ryzen 5 7600X",
+      "fmv_eur": 110.4,
+      "tdp_w": 105,
+      "aliases": [
+        "ryzen 5 7600x",
+        "7600x"
+      ],
+      "spec_baseline": 155,
+      "curated_fmv_eur": 155,
+      "market_source": "kleinanzeigen",
+      "market_samples": 30,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_5_7600",
+      "kind": "cpu",
+      "label": "AMD Ryzen 5 7600",
+      "fmv_eur": 120,
+      "tdp_w": 65,
+      "aliases": [
+        "ryzen 5 7600"
+      ]
+    },
+    {
+      "id": "AMD_RYZEN_5_9600X",
+      "kind": "cpu",
+      "label": "AMD Ryzen 5 9600X",
+      "fmv_eur": 127.88,
+      "tdp_w": 88,
+      "aliases": [
+        "ryzen 5 9600x",
+        "9600x"
+      ],
+      "curated_fmv_eur": 150,
+      "market_source": "kleinanzeigen",
+      "market_samples": 9,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_5_7800X3D",
+      "kind": "cpu",
+      "label": "AMD Ryzen 5 7800X3D",
+      "fmv_eur": 330,
+      "tdp_w": 120,
+      "aliases": [
+        "ryzen 5 7800x3d"
+      ]
+    },
+    {
+      "id": "AMD_RYZEN_7_7800X",
+      "kind": "cpu",
+      "label": "AMD Ryzen 7 7800X",
+      "fmv_eur": 200,
+      "tdp_w": 105,
+      "aliases": [
+        "ryzen 7 7800x"
+      ]
+    },
+    {
+      "id": "AMD_RYZEN_7_7800X3D",
+      "kind": "cpu",
+      "label": "AMD Ryzen 7 7800X3D",
+      "fmv_eur": 253.0,
+      "tdp_w": 120,
+      "aliases": [
+        "ryzen 7 7800x3d",
+        "7800x3d"
+      ],
+      "spec_baseline": 310,
+      "curated_fmv_eur": 310,
+      "market_source": "kleinanzeigen",
+      "market_samples": 27,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_7_9700X",
+      "kind": "cpu",
+      "label": "AMD Ryzen 7 9700X",
+      "fmv_eur": 184.0,
+      "tdp_w": 65,
+      "aliases": [
+        "ryzen 7 9700x",
+        "9700x"
+      ],
+      "curated_fmv_eur": 240,
+      "market_source": "kleinanzeigen",
+      "market_samples": 12,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_7_9800X3D",
+      "kind": "cpu",
+      "label": "AMD Ryzen 7 9800X3D",
+      "fmv_eur": 303.6,
+      "tdp_w": 120,
+      "aliases": [
+        "ryzen 7 9800x3d",
+        "9800x3d"
+      ],
+      "curated_fmv_eur": 420,
+      "market_source": "kleinanzeigen",
+      "market_samples": 21,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_9_7950X",
+      "kind": "cpu",
+      "label": "AMD Ryzen 9 7950X",
+      "fmv_eur": 276.0,
+      "tdp_w": 170,
+      "aliases": [
+        "ryzen 9 7950x"
+      ],
+      "curated_fmv_eur": 330,
+      "market_source": "kleinanzeigen",
+      "market_samples": 9,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_9_7950X3D",
+      "kind": "cpu",
+      "label": "AMD Ryzen 9 7950X3D",
+      "fmv_eur": 333.5,
+      "tdp_w": 120,
+      "aliases": [
+        "ryzen 9 7950x3d",
+        "7950x3d"
+      ],
+      "curated_fmv_eur": 480,
+      "market_source": "kleinanzeigen",
+      "market_samples": 24,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_9_9950X",
+      "kind": "cpu",
+      "label": "AMD Ryzen 9 9950X",
+      "fmv_eur": 552.0,
+      "tdp_w": 170,
+      "aliases": [
+        "ryzen 9 9950x",
+        "9950x"
+      ],
+      "curated_fmv_eur": 470,
+      "market_source": "kleinanzeigen",
+      "market_samples": 9,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_9_9950X3D",
+      "kind": "cpu",
+      "label": "AMD Ryzen 9 9950X3D",
+      "fmv_eur": 455.4,
+      "tdp_w": 120,
+      "aliases": [
+        "ryzen 9 9950x3d",
+        "9950x3d"
+      ],
+      "curated_fmv_eur": 560,
+      "market_source": "kleinanzeigen",
+      "market_samples": 6,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_7_5700X",
+      "kind": "cpu",
+      "label": "AMD Ryzen 7 5700X",
+      "fmv_eur": 204.7,
+      "tdp_w": 65,
+      "aliases": [
+        "ryzen 7 5700x",
+        "5700x"
+      ],
+      "curated_fmv_eur": 85,
+      "market_source": "kleinanzeigen",
+      "market_samples": 12,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RYZEN_5_5600",
+      "kind": "cpu",
+      "label": "AMD Ryzen 5 5600",
+      "fmv_eur": 105.8,
+      "tdp_w": 65,
+      "aliases": [
+        "ryzen 5 5600",
+        "5600"
+      ],
+      "curated_fmv_eur": 60,
+      "market_source": "kleinanzeigen",
+      "market_samples": 9,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I5_12400F",
+      "kind": "cpu",
+      "label": "Intel Core i5-12400F",
+      "fmv_eur": 92.0,
+      "tdp_w": 65,
+      "aliases": [
+        "i5-12400f",
+        "i5 12400f",
+        "12400f"
+      ],
+      "curated_fmv_eur": 55,
+      "market_source": "kleinanzeigen",
+      "market_samples": 27,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I5_13400F",
+      "kind": "cpu",
+      "label": "Intel Core i5-13400F",
+      "fmv_eur": 121.9,
+      "tdp_w": 65,
+      "aliases": [
+        "i5-13400f",
+        "i5 13400f",
+        "13400f"
+      ],
+      "curated_fmv_eur": 85,
+      "market_source": "kleinanzeigen",
+      "market_samples": 12,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I5_14400F",
+      "kind": "cpu",
+      "label": "Intel Core i5-14400F",
+      "fmv_eur": 101.2,
+      "tdp_w": 65,
+      "aliases": [
+        "i5-14400f",
+        "i5 14400f",
+        "14400f"
+      ],
+      "curated_fmv_eur": 105,
+      "market_source": "kleinanzeigen",
+      "market_samples": 6,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I5_12600K",
+      "kind": "cpu",
+      "label": "Intel Core i5-12600K",
+      "fmv_eur": 146.28,
+      "tdp_w": 125,
+      "aliases": [
+        "i5-12600k",
+        "i5 12600k",
+        "12600k"
+      ],
+      "curated_fmv_eur": 90,
+      "market_source": "kleinanzeigen",
+      "market_samples": 15,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I5_13600K",
+      "kind": "cpu",
+      "label": "Intel Core i5-13600K",
+      "fmv_eur": 193.2,
+      "tdp_w": 181,
+      "aliases": [
+        "i5-13600k",
+        "i5 13600k",
+        "13600k"
+      ],
+      "curated_fmv_eur": 175,
+      "market_source": "kleinanzeigen",
+      "market_samples": 10,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I5_14600K",
+      "kind": "cpu",
+      "label": "Intel Core i5-14600K",
+      "fmv_eur": 215,
+      "tdp_w": 181,
+      "aliases": [
+        "i5-14600k",
+        "i5 14600k",
+        "14600k"
+      ]
+    },
+    {
+      "id": "INTEL_I7_12700K",
+      "kind": "cpu",
+      "label": "Intel Core i7-12700K",
+      "fmv_eur": 178.94,
+      "tdp_w": 125,
+      "aliases": [
+        "i7-12700k",
+        "i7 12700k",
+        "12700k"
+      ],
+      "curated_fmv_eur": 190,
+      "market_source": "kleinanzeigen",
+      "market_samples": 18,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I7_13700K",
+      "kind": "cpu",
+      "label": "Intel Core i7-13700K",
+      "fmv_eur": 202.4,
+      "tdp_w": 253,
+      "aliases": [
+        "i7-13700k",
+        "i7 13700k",
+        "13700k"
+      ],
+      "curated_fmv_eur": 265,
+      "market_source": "kleinanzeigen",
+      "market_samples": 33,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I7_14700K",
+      "kind": "cpu",
+      "label": "Intel Core i7-14700K",
+      "fmv_eur": 271.4,
+      "tdp_w": 253,
+      "aliases": [
+        "i7-14700k",
+        "i7 14700k",
+        "14700k"
+      ],
+      "curated_fmv_eur": 330,
+      "market_source": "kleinanzeigen",
+      "market_samples": 6,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I9_12900K",
+      "kind": "cpu",
+      "label": "Intel Core i9-12900K",
+      "fmv_eur": 256.68,
+      "tdp_w": 125,
+      "aliases": [
+        "i9-12900k",
+        "i9 12900k",
+        "12900k"
+      ],
+      "curated_fmv_eur": 300,
+      "market_source": "kleinanzeigen",
+      "market_samples": 9,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I9_13900K",
+      "kind": "cpu",
+      "label": "Intel Core i9-13900K",
+      "fmv_eur": 275.08,
+      "tdp_w": 253,
+      "aliases": [
+        "i9-13900k",
+        "i9 13900k",
+        "13900k"
+      ],
+      "curated_fmv_eur": 430,
+      "market_source": "kleinanzeigen",
+      "market_samples": 36,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "INTEL_I9_14900K",
+      "kind": "cpu",
+      "label": "Intel Core i9-14900K",
+      "fmv_eur": 321.08,
+      "tdp_w": 253,
+      "aliases": [
+        "i9-14900k",
+        "i9 14900k",
+        "14900k"
+      ],
+      "curated_fmv_eur": 480,
+      "market_source": "kleinanzeigen",
+      "market_samples": 21,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_3060_12GB",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 3060 12GB",
+      "fmv_eur": 294.4,
+      "tdp_w": 170,
+      "aliases": [
+        "rtx 3060",
+        "rtx3060"
+      ],
+      "curated_fmv_eur": 160,
+      "market_source": "kleinanzeigen",
+      "market_samples": 23,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_3070",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 3070",
+      "fmv_eur": 276.0,
+      "tdp_w": 220,
+      "aliases": [
+        "rtx 3070",
+        "rtx3070"
+      ],
+      "curated_fmv_eur": 320,
+      "market_source": "kleinanzeigen",
+      "market_samples": 31,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_3080",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 3080",
+      "fmv_eur": 404.8,
+      "tdp_w": 320,
+      "aliases": [
+        "rtx 3080",
+        "rtx3080"
+      ],
+      "curated_fmv_eur": 480,
+      "market_source": "kleinanzeigen",
+      "market_samples": 23,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_3090",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 3090",
+      "fmv_eur": 1379.08,
+      "tdp_w": 350,
+      "aliases": [
+        "rtx 3090",
+        "rtx3090"
+      ],
+      "curated_fmv_eur": 750,
+      "market_source": "kleinanzeigen",
+      "market_samples": 37,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4060_8GB",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4060 8GB",
+      "fmv_eur": 303.6,
+      "tdp_w": 115,
+      "aliases": [
+        "rtx 4060",
+        "rtx4060"
+      ],
+      "curated_fmv_eur": 165,
+      "market_source": "kleinanzeigen",
+      "market_samples": 17,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4060_TI",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4060 Ti",
+      "fmv_eur": 386.4,
+      "tdp_w": 160,
+      "aliases": [
+        "rtx 4060 ti",
+        "rtx4060ti"
+      ],
+      "curated_fmv_eur": 230,
+      "market_source": "kleinanzeigen",
+      "market_samples": 45,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4070_12GB",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4070 12GB",
+      "fmv_eur": 551.08,
+      "tdp_w": 200,
+      "aliases": [
+        "rtx 4070",
+        "rtx4070"
+      ],
+      "spec_baseline": 440,
+      "curated_fmv_eur": 440,
+      "market_source": "kleinanzeigen",
+      "market_samples": 14,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4070_SUPER",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4070 SUPER",
+      "fmv_eur": 578.68,
+      "tdp_w": 220,
+      "aliases": [
+        "rtx 4070 super",
+        "rtx4070super",
+        "4070 super"
+      ],
+      "curated_fmv_eur": 520,
+      "market_source": "kleinanzeigen",
+      "market_samples": 13,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4070_TI",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4070 Ti",
+      "fmv_eur": 735.08,
+      "tdp_w": 285,
+      "aliases": [
+        "rtx 4070 ti",
+        "rtx4070ti",
+        "4070 ti"
+      ],
+      "curated_fmv_eur": 590,
+      "market_source": "kleinanzeigen",
+      "market_samples": 19,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4080_16GB",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4080 16GB",
+      "fmv_eur": 1012.0,
+      "tdp_w": 320,
+      "aliases": [
+        "rtx 4080",
+        "rtx4080"
+      ],
+      "spec_baseline": 820,
+      "curated_fmv_eur": 820,
+      "market_source": "kleinanzeigen",
+      "market_samples": 16,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4080_SUPER",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4080 SUPER",
+      "fmv_eur": 1103.54,
+      "tdp_w": 320,
+      "aliases": [
+        "rtx 4080 super",
+        "rtx4080super",
+        "4080 super"
+      ],
+      "curated_fmv_eur": 880,
+      "market_source": "kleinanzeigen",
+      "market_samples": 36,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_4090_24GB",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 4090 24GB",
+      "fmv_eur": 2576.0,
+      "tdp_w": 450,
+      "aliases": [
+        "rtx 4090",
+        "rtx4090"
+      ],
+      "curated_fmv_eur": 1350,
+      "market_source": "kleinanzeigen",
+      "market_samples": 37,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_5060_TI",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 5060 Ti",
+      "fmv_eur": 598.0,
+      "tdp_w": 180,
+      "aliases": [
+        "rtx 5060 ti",
+        "rtx5060ti"
+      ],
+      "curated_fmv_eur": 230,
+      "market_source": "kleinanzeigen",
+      "market_samples": 19,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_5070",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 5070",
+      "fmv_eur": 380,
+      "tdp_w": 250,
+      "aliases": [
+        "rtx 5070",
+        "rtx5070"
+      ]
+    },
+    {
+      "id": "NVIDIA_RTX_5070_TI",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 5070 Ti",
+      "fmv_eur": 966.0,
+      "tdp_w": 300,
+      "aliases": [
+        "rtx 5070 ti",
+        "rtx5070ti"
+      ],
+      "curated_fmv_eur": 560,
+      "market_source": "kleinanzeigen",
+      "market_samples": 25,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_5080",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 5080",
+      "fmv_eur": 1370.8,
+      "tdp_w": 360,
+      "aliases": [
+        "rtx 5080",
+        "rtx5080"
+      ],
+      "curated_fmv_eur": 850,
+      "market_source": "kleinanzeigen",
+      "market_samples": 19,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVIDIA_RTX_5090_32GB",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 5090 32GB",
+      "fmv_eur": 1750,
+      "tdp_w": 575,
+      "aliases": [
+        "rtx 5090",
+        "rtx5090"
+      ]
+    },
+    {
+      "id": "AMD_RX_6600_XT",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 6600 XT",
+      "fmv_eur": 202.4,
+      "tdp_w": 160,
+      "aliases": [
+        "rx 6600 xt",
+        "rx6600xt",
+        "6600 xt"
+      ],
+      "curated_fmv_eur": 115,
+      "market_source": "kleinanzeigen",
+      "market_samples": 36,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RX_6700_XT",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 6700 XT",
+      "fmv_eur": 276.0,
+      "tdp_w": 230,
+      "aliases": [
+        "rx 6700 xt",
+        "rx6700xt",
+        "6700 xt"
+      ],
+      "curated_fmv_eur": 190,
+      "market_source": "kleinanzeigen",
+      "market_samples": 33,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RX_7600",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 7600",
+      "fmv_eur": 266.8,
+      "tdp_w": 165,
+      "aliases": [
+        "rx 7600",
+        "rx7600"
+      ],
+      "curated_fmv_eur": 175,
+      "market_source": "kleinanzeigen",
+      "market_samples": 17,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RX_7800_XT",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 7800 XT",
+      "fmv_eur": 476.1,
+      "tdp_w": 263,
+      "aliases": [
+        "rx 7800 xt",
+        "rx7800xt",
+        "7800 xt"
+      ],
+      "curated_fmv_eur": 350,
+      "market_source": "kleinanzeigen",
+      "market_samples": 20,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RX_7900_XT",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 7900 XT",
+      "fmv_eur": 690.0,
+      "tdp_w": 315,
+      "aliases": [
+        "rx 7900 xt",
+        "rx7900xt",
+        "7900 xt"
+      ],
+      "curated_fmv_eur": 480,
+      "market_source": "kleinanzeigen",
+      "market_samples": 25,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RX_7900_XTX",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 7900 XTX",
+      "fmv_eur": 892.4,
+      "tdp_w": 355,
+      "aliases": [
+        "rx 7900 xtx",
+        "rx7900xtx",
+        "7900 xtx"
+      ],
+      "curated_fmv_eur": 620,
+      "market_source": "kleinanzeigen",
+      "market_samples": 30,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RX_9070",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 9070",
+      "fmv_eur": 652.28,
+      "tdp_w": 220,
+      "aliases": [
+        "rx 9070",
+        "rx9070"
+      ],
+      "curated_fmv_eur": 420,
+      "market_source": "kleinanzeigen",
+      "market_samples": 13,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "AMD_RX_9070_XT",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 9070 XT",
+      "fmv_eur": 736.0,
+      "tdp_w": 304,
+      "aliases": [
+        "rx 9070 xt",
+        "rx9070xt",
+        "9070 xt"
+      ],
+      "curated_fmv_eur": 580,
+      "market_source": "kleinanzeigen",
+      "market_samples": 17,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "DDR5_16GB_STANDARD",
+      "kind": "ram",
+      "label": "16 GB DDR5 RAM",
+      "fmv_eur": 193.2,
+      "aliases": [
+        "ddr5 16gb",
+        "16gb ddr5"
+      ],
+      "curated_fmv_eur": 45,
+      "market_source": "kleinanzeigen",
+      "market_samples": 13,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "DDR5_32GB_STANDARD",
+      "kind": "ram",
+      "label": "32 GB DDR5 RAM",
+      "fmv_eur": 265.88,
+      "aliases": [
+        "ddr5 32gb",
+        "32gb ddr5"
+      ],
+      "spec_baseline": 85,
+      "curated_fmv_eur": 85,
+      "market_source": "kleinanzeigen",
+      "market_samples": 27,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "DDR5_64GB_STANDARD",
+      "kind": "ram",
+      "label": "64 GB DDR5 RAM",
+      "fmv_eur": 736.0,
+      "aliases": [
+        "ddr5 64gb",
+        "64gb ddr5"
+      ],
+      "curated_fmv_eur": 160,
+      "market_source": "kleinanzeigen",
+      "market_samples": 12,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "DDR4_16GB_STANDARD",
+      "kind": "ram",
+      "label": "16 GB DDR4 RAM",
+      "fmv_eur": 69.0,
+      "aliases": [
+        "ddr4 16gb",
+        "16gb ddr4"
+      ],
+      "curated_fmv_eur": 25,
+      "market_source": "kleinanzeigen",
+      "market_samples": 10,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "DDR4_32GB_STANDARD",
+      "kind": "ram",
+      "label": "32 GB DDR4 RAM",
+      "fmv_eur": 193.2,
+      "aliases": [
+        "ddr4 32gb",
+        "32gb ddr4"
+      ],
+      "curated_fmv_eur": 40,
+      "market_source": "kleinanzeigen",
+      "market_samples": 16,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVME_GEN3_1TB",
+      "kind": "storage",
+      "label": "1 TB NVMe (Gen3)",
+      "fmv_eur": 110,
+      "aliases": [
+        "nvme 1tb",
+        "1tb nvme",
+        "1tb ssd"
+      ],
+      "curated_fmv_eur": 32,
+      "market_source": "kleinanzeigen",
+      "market_samples": 5,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVME_GEN4_1TB",
+      "kind": "storage",
+      "label": "1 TB NVMe (Gen4)",
+      "fmv_eur": 115,
+      "aliases": [
+        "nvme 1tb",
+        "ssd 1tb nvme",
+        "1tb nvme",
+        "1tb ssd nvme"
+      ],
+      "spec_baseline": 50,
+      "curated_fmv_eur": 50,
+      "market_source": "kleinanzeigen",
+      "market_samples": 8,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVME_GEN4_2TB",
+      "kind": "storage",
+      "label": "2 TB NVMe (Gen4)",
+      "fmv_eur": 260,
+      "aliases": [
+        "nvme 2tb",
+        "2tb nvme",
+        "2tb ssd"
+      ],
+      "curated_fmv_eur": 85,
+      "market_source": "kleinanzeigen",
+      "market_samples": 1,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "NVME_GEN5_2TB",
+      "kind": "storage",
+      "label": "2 TB NVMe (Gen5)",
+      "fmv_eur": 300,
+      "aliases": [
+        "nvme 2tb gen5",
+        "2tb nvme"
+      ],
+      "curated_fmv_eur": 150,
+      "market_source": "kleinanzeigen",
+      "market_samples": 0,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "SATA_SSD_1TB",
+      "kind": "storage",
+      "label": "1 TB SATA SSD",
+      "fmv_eur": 105,
+      "aliases": [
+        "ssd 1tb",
+        "1tb ssd"
+      ],
+      "curated_fmv_eur": 25,
+      "market_source": "kleinanzeigen",
+      "market_samples": 4,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "B620_STANDARD",
+      "kind": "board",
+      "label": "AM4 / DDR4 Mainboard (B550)",
+      "fmv_eur": 101.2,
+      "aliases": [
+        "b550",
+        "b550 motherboard"
+      ],
+      "curated_fmv_eur": 70,
+      "market_source": "kleinanzeigen",
+      "market_samples": 7,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "A620_STANDARD",
+      "kind": "board",
+      "label": "AM5 Mainboard (A620)",
+      "fmv_eur": 70,
+      "aliases": [
+        "a620"
+      ]
+    },
+    {
+      "id": "B650_STANDARD",
+      "kind": "board",
+      "label": "AM5 Mainboard (B650)",
+      "fmv_eur": 115.0,
+      "aliases": [
+        "b650"
+      ],
+      "spec_baseline": 105,
+      "curated_fmv_eur": 105,
+      "market_source": "kleinanzeigen",
+      "market_samples": 6,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "B650E_STANDARD",
+      "kind": "board",
+      "label": "AM5 Mainboard (B650E)",
+      "fmv_eur": 124.2,
+      "aliases": [
+        "b650e"
+      ],
+      "curated_fmv_eur": 150,
+      "market_source": "kleinanzeigen",
+      "market_samples": 6,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "X670_STANDARD",
+      "kind": "board",
+      "label": "AM5 Mainboard (X670)",
+      "fmv_eur": 160,
+      "aliases": [
+        "x670"
+      ]
+    },
+    {
+      "id": "X670E_STANDARD",
+      "kind": "board",
+      "label": "AM5 Mainboard (X670E)",
+      "fmv_eur": 230.0,
+      "aliases": [
+        "x670e"
+      ],
+      "curated_fmv_eur": 230,
+      "market_source": "kleinanzeigen",
+      "market_samples": 12,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "B760_STANDARD",
+      "kind": "board",
+      "label": "LGA1700 Mainboard (B760)",
+      "fmv_eur": 110.4,
+      "aliases": [
+        "b760"
+      ],
+      "curated_fmv_eur": 85,
+      "market_source": "kleinanzeigen",
+      "market_samples": 13,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "Z790_STANDARD",
+      "kind": "board",
+      "label": "LGA1700 Mainboard (Z790)",
+      "fmv_eur": 138.0,
+      "aliases": [
+        "z790"
+      ],
+      "curated_fmv_eur": 210,
+      "market_source": "kleinanzeigen",
+      "market_samples": 10,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "PSU_550W_BRONZE",
+      "kind": "psu",
+      "label": "550 W Netzteil (80+ Bronze)",
+      "fmv_eur": 36.8,
+      "aliases": [
+        "550w",
+        "550 watt"
+      ],
+      "curated_fmv_eur": 35,
+      "market_source": "kleinanzeigen",
+      "market_samples": 9,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "PSU_650W_GOLD",
+      "kind": "psu",
+      "label": "650 W Netzteil (80+ Gold)",
+      "fmv_eur": 46.0,
+      "aliases": [
+        "650w",
+        "650 watt"
+      ],
+      "curated_fmv_eur": 55,
+      "market_source": "kleinanzeigen",
+      "market_samples": 19,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "PSU_750W_GOLD",
+      "kind": "psu",
+      "label": "750 W Netzteil (80+ Gold)",
+      "fmv_eur": 68.54,
+      "aliases": [
+        "750w",
+        "750 watt"
+      ],
+      "curated_fmv_eur": 70,
+      "market_source": "kleinanzeigen",
+      "market_samples": 20,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "PSU_850W_GOLD",
+      "kind": "psu",
+      "label": "850 W Netzteil (80+ Gold)",
+      "fmv_eur": 63.48,
+      "aliases": [
+        "850w",
+        "850 watt"
+      ],
+      "curated_fmv_eur": 95,
+      "market_source": "kleinanzeigen",
+      "market_samples": 19,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "PSU_1000W_GOLD",
+      "kind": "psu",
+      "label": "1000 W Netzteil (80+ Gold)",
+      "fmv_eur": 73.6,
+      "aliases": [
+        "1000w",
+        "1000 watt"
+      ],
+      "curated_fmv_eur": 135,
+      "market_source": "kleinanzeigen",
+      "market_samples": 22,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "PSU_1200W_ATX30",
+      "kind": "psu",
+      "label": "1200 W Netzteil (ATX 3.0)",
+      "fmv_eur": 121.9,
+      "aliases": [
+        "1200w",
+        "1200 watt"
+      ],
+      "curated_fmv_eur": 200,
+      "market_source": "kleinanzeigen",
+      "market_samples": 16,
+      "market_observed": "2026-10-20"
+    },
+    {
+      "id": "PERIPHERAL_BUNDLE_GENERIC",
+      "kind": "peripheral",
+      "label": "Gehäuse + Kühler",
+      "fmv_eur": 90,
+      "aliases": [],
+      "spec_baseline": 90
+    }
+  ],
+  "defect_costs": {
+    "missing_storage": 55,
+    "missing_cooler": 25,
+    "missing_os": 35,
+    "missing_case": 45,
+    "unknown_defect": 30,
+    "damaged_gpu_ratio": 0.8
+  },
+  "platform_adjustments": {
+    "am5_pcie4_bonus_pct": 3.0,
+    "psu_undersized_penalty_eur": 60,
+    "ram_below_16gb_penalty_eur": 25,
+    "storage_below_512gb_penalty_eur": 40
+  },
+  "condition_multipliers": {
+    "like_new": 1.0,
+    "new": 1.0,
+    "ok": 0.93,
+    "alright": 0.85,
+    "defect": 0.6,
+    "": 0.9
+  }
+}

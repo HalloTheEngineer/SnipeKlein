@@ -1,0 +1,88 @@
+# SnipeKlein - Kleinanzeigen deal sniper.
+#
+# Deployment notes (Dokploy / any docker compose host):
+#   * Secrets are NOT read from a file. Every value comes from the environment:
+#     GEMINI_API_KEY, DISCORD_WEBHOOK_URL and (optional) PROXY_URL.
+#     Locally they are taken from the ./.env file (docker compose loads it
+#     automatically), on a server they are injected by the platform
+#     (Dokploy writes them into the .env next to this file and passes
+#     --env-file).
+#   * The state (SQLite database, harvested prices) lives in the named volume
+#     "snipeklein-data" - it survives redeploys and can be snapshotted by
+#     Dokploy's Volume Backups.
+#   * No ports are exposed: this is a worker, it only talks to
+#     kleinanzeigen.de, the Gemini API and the Discord webhook.
+
+x-snipeklein: &snipeklein
+  build: .
+  image: snipeklein:latest
+  restart: unless-stopped
+  environment:
+    TZ: Europe/Berlin
+    GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+    DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL:-}"
+    # Optional German/EU residential proxy (see spec 3.1)
+    PROXY_URL: "${PROXY_URL:-}"
+  volumes:
+    - snipeklein-data:/app/data
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  bot:
+    <<: *snipeklein
+    container_name: snipeklein-bot
+    command: ["poll"]
+    healthcheck:
+      test: ["CMD", "snipeklein", "health"]
+      interval: 5m
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+
+  watchdog:
+    <<: *snipeklein
+    container_name: snipeklein-watchdog
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          if ! snipeklein health > /tmp/health.txt 2>&1; then
+            echo "[watchdog] health check failed:"
+            cat /tmp/health.txt
+            snipeklein notify "SnipeKlein is unhealthy - check the logs: $(date -Iseconds)" || true
+          fi
+          sleep 300
+        done
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  price-refresher:
+    <<: *snipeklein
+    container_name: snipeklein-prices
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          echo "[price-refresher] refreshing component prices"
+          snipeklein prices refresh || echo "[price-refresher] refresh failed"
+          echo "[price-refresher] backing up the state"
+          mkdir -p /app/data/backups
+          cp /app/data/snipeklein.db /app/data/backups/snipeklein-$(date +%Y%m%d).db 2>/dev/null || true
+          cp /app/data/prices.json /app/data/backups/prices-$(date +%Y%m%d).json 2>/dev/null || true
+          sleep 86400
+        done
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  snipeklein-data:
