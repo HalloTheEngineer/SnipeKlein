@@ -16,7 +16,7 @@
       "spec_baseline": 155,
       "curated_fmv_eur": 155,
       "market_source": "kleinanzeigen",
-      "market_samples": 16,
+      "market_samples": 8,
       "market_observed": "2026-10-21"
     },
     {
@@ -68,7 +68,7 @@
       "id": "AMD_RYZEN_7_7800X3D",
       "kind": "cpu",
       "label": "AMD Ryzen 7 7800X3D",
-      "fmv_eur": 253.0,
+      "fmv_eur": 255.3,
       "tdp_w": 120,
       "aliases": [
         "ryzen 7 7800x3d",
@@ -77,7 +77,7 @@
       "spec_baseline": 310,
       "curated_fmv_eur": 310,
       "market_source": "kleinanzeigen",
-      "market_samples": 23,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
@@ -107,7 +107,7 @@
       ],
       "curated_fmv_eur": 420,
       "market_source": "kleinanzeigen",
-      "market_samples": 12,
+      "market_samples": 6,
       "market_observed": "2026-10-21"
     },
     {
@@ -136,7 +136,7 @@
       ],
       "curated_fmv_eur": 480,
       "market_source": "kleinanzeigen",
-      "market_samples": 14,
+      "market_samples": 7,
       "market_observed": "2026-10-21"
     },
     {
@@ -212,7 +212,7 @@
       ],
       "curated_fmv_eur": 55,
       "market_source": "kleinanzeigen",
-      "market_samples": 18,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
@@ -260,7 +260,7 @@
       ],
       "curated_fmv_eur": 90,
       "market_source": "kleinanzeigen",
-      "market_samples": 10,
+      "market_samples": 5,
       "market_observed": "2026-10-21"
     },
     {
@@ -304,7 +304,7 @@
       ],
       "curated_fmv_eur": 190,
       "market_source": "kleinanzeigen",
-      "market_samples": 10,
+      "market_samples": 5,
       "market_observed": "2026-10-21"
     },
     {
@@ -320,7 +320,7 @@
       ],
       "curated_fmv_eur": 265,
       "market_source": "kleinanzeigen",
-      "market_samples": 20,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
@@ -368,7 +368,7 @@
       ],
       "curated_fmv_eur": 430,
       "market_source": "kleinanzeigen",
-      "market_samples": 24,
+      "market_samples": 12,
       "market_observed": "2026-10-21"
     },
     {
@@ -384,7 +384,7 @@
       ],
       "curated_fmv_eur": 480,
       "market_source": "kleinanzeigen",
-      "market_samples": 14,
+      "market_samples": 6,
       "market_observed": "2026-10-21"
     },
     {
@@ -399,14 +399,14 @@
       ],
       "curated_fmv_eur": 160,
       "market_source": "kleinanzeigen",
-      "market_samples": 24,
+      "market_samples": 12,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_3070",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 3070",
-      "fmv_eur": 273.24,
+      "fmv_eur": 275.08,
       "tdp_w": 220,
       "aliases": [
         "rtx 3070",
@@ -414,14 +414,14 @@
       ],
       "curated_fmv_eur": 320,
       "market_source": "kleinanzeigen",
-      "market_samples": 16,
+      "market_samples": 7,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_3080",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 3080",
-      "fmv_eur": 394.68,
+      "fmv_eur": 395.6,
       "tdp_w": 320,
       "aliases": [
         "rtx 3080",
@@ -429,14 +429,14 @@
       ],
       "curated_fmv_eur": 480,
       "market_source": "kleinanzeigen",
-      "market_samples": 22,
+      "market_samples": 11,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_3090",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 3090",
-      "fmv_eur": 1333.08,
+      "fmv_eur": 1380.0,
       "tdp_w": 350,
       "aliases": [
         "rtx 3090",
@@ -444,14 +444,14 @@
       ],
       "curated_fmv_eur": 750,
       "market_source": "kleinanzeigen",
-      "market_samples": 24,
+      "market_samples": 12,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_4060_8GB",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 4060 8GB",
-      "fmv_eur": 285.2,
+      "fmv_eur": 280.6,
       "tdp_w": 115,
       "aliases": [
         "rtx 4060",
@@ -459,14 +459,14 @@
       ],
       "curated_fmv_eur": 165,
       "market_source": "kleinanzeigen",
-      "market_samples": 16,
+      "market_samples": 8,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_4060_TI",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 4060 Ti",
-      "fmv_eur": 441.6,
+      "fmv_eur": 414.0,
       "tdp_w": 160,
       "aliases": [
         "rtx 4060 ti",
@@ -474,7 +474,7 @@
       ],
       "curated_fmv_eur": 230,
       "market_source": "kleinanzeigen",
-      "market_samples": 34,
+      "market_samples": 17,
       "market_observed": "2026-10-21"
     },
     {
@@ -497,7 +497,7 @@
       "id": "NVIDIA_RTX_4070_SUPER",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 4070 SUPER",
-      "fmv_eur": 632.5,
+      "fmv_eur": 575.0,
       "tdp_w": 220,
       "aliases": [
         "rtx 4070 super",
@@ -506,7 +506,7 @@
       ],
       "curated_fmv_eur": 520,
       "market_source": "kleinanzeigen",
-      "market_samples": 12,
+      "market_samples": 7,
       "market_observed": "2026-10-21"
     },
     {
@@ -522,14 +522,14 @@
       ],
       "curated_fmv_eur": 590,
       "market_source": "kleinanzeigen",
-      "market_samples": 18,
+      "market_samples": 8,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_4080_16GB",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 4080 16GB",
-      "fmv_eur": 1012.0,
+      "fmv_eur": 919.08,
       "tdp_w": 320,
       "aliases": [
         "rtx 4080",
@@ -538,14 +538,14 @@
       "spec_baseline": 820,
       "curated_fmv_eur": 820,
       "market_source": "kleinanzeigen",
-      "market_samples": 8,
+      "market_samples": 5,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_4080_SUPER",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 4080 SUPER",
-      "fmv_eur": 1103.08,
+      "fmv_eur": 1017.06,
       "tdp_w": 320,
       "aliases": [
         "rtx 4080 super",
@@ -554,14 +554,14 @@
       ],
       "curated_fmv_eur": 880,
       "market_source": "kleinanzeigen",
-      "market_samples": 26,
+      "market_samples": 14,
       "market_observed": "2026-10-21"
     },
     {
       "id": "NVIDIA_RTX_4090_24GB",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 4090 24GB",
-      "fmv_eur": 2668.0,
+      "fmv_eur": 2576.0,
       "tdp_w": 450,
       "aliases": [
         "rtx 4090",
@@ -569,7 +569,7 @@
       ],
       "curated_fmv_eur": 1350,
       "market_source": "kleinanzeigen",
-      "market_samples": 26,
+      "market_samples": 15,
       "market_observed": "2026-10-21"
     },
     {
@@ -584,7 +584,7 @@
       ],
       "curated_fmv_eur": 230,
       "market_source": "kleinanzeigen",
-      "market_samples": 18,
+      "market_samples": 11,
       "market_observed": "2026-10-21"
     },
     {
@@ -610,7 +610,7 @@
       ],
       "curated_fmv_eur": 560,
       "market_source": "kleinanzeigen",
-      "market_samples": 20,
+      "market_samples": 9,
       "market_observed": "2026-10-21"
     },
     {
@@ -625,7 +625,7 @@
       ],
       "curated_fmv_eur": 850,
       "market_source": "kleinanzeigen",
-      "market_samples": 10,
+      "market_samples": 5,
       "market_observed": "2026-10-21"
     },
     {
@@ -652,14 +652,14 @@
       ],
       "curated_fmv_eur": 115,
       "market_source": "kleinanzeigen",
-      "market_samples": 40,
+      "market_samples": 20,
       "market_observed": "2026-10-21"
     },
     {
       "id": "AMD_RX_6700_XT",
       "kind": "gpu",
       "label": "AMD Radeon RX 6700 XT",
-      "fmv_eur": 280.6,
+      "fmv_eur": 285.2,
       "tdp_w": 230,
       "aliases": [
         "rx 6700 xt",
@@ -668,7 +668,7 @@
       ],
       "curated_fmv_eur": 190,
       "market_source": "kleinanzeigen",
-      "market_samples": 32,
+      "market_samples": 17,
       "market_observed": "2026-10-21"
     },
     {
@@ -683,14 +683,14 @@
       ],
       "curated_fmv_eur": 175,
       "market_source": "kleinanzeigen",
-      "market_samples": 16,
+      "market_samples": 8,
       "market_observed": "2026-10-21"
     },
     {
       "id": "AMD_RX_7800_XT",
       "kind": "gpu",
       "label": "AMD Radeon RX 7800 XT",
-      "fmv_eur": 501.4,
+      "fmv_eur": 506.0,
       "tdp_w": 263,
       "aliases": [
         "rx 7800 xt",
@@ -699,7 +699,7 @@
       ],
       "curated_fmv_eur": 350,
       "market_source": "kleinanzeigen",
-      "market_samples": 26,
+      "market_samples": 13,
       "market_observed": "2026-10-21"
     },
     {
@@ -715,7 +715,7 @@
       ],
       "curated_fmv_eur": 480,
       "market_source": "kleinanzeigen",
-      "market_samples": 20,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
@@ -731,7 +731,7 @@
       ],
       "curated_fmv_eur": 620,
       "market_source": "kleinanzeigen",
-      "market_samples": 22,
+      "market_samples": 11,
       "market_observed": "2026-10-21"
     },
     {
@@ -753,7 +753,7 @@
       "id": "AMD_RX_9070_XT",
       "kind": "gpu",
       "label": "AMD Radeon RX 9070 XT",
-      "fmv_eur": 736.0,
+      "fmv_eur": 753.48,
       "tdp_w": 304,
       "aliases": [
         "rx 9070 xt",
@@ -762,7 +762,7 @@
       ],
       "curated_fmv_eur": 580,
       "market_source": "kleinanzeigen",
-      "market_samples": 18,
+      "market_samples": 7,
       "market_observed": "2026-10-21"
     },
     {
@@ -783,7 +783,7 @@
       "id": "DDR5_32GB_STANDARD",
       "kind": "ram",
       "label": "32 GB DDR5 RAM",
-      "fmv_eur": 265.88,
+      "fmv_eur": 372.6,
       "aliases": [
         "ddr5 32gb",
         "32gb ddr5"
@@ -791,7 +791,7 @@
       "spec_baseline": 85,
       "curated_fmv_eur": 85,
       "market_source": "kleinanzeigen",
-      "market_samples": 14,
+      "market_samples": 8,
       "market_observed": "2026-10-21"
     },
     {
@@ -805,21 +805,21 @@
       ],
       "curated_fmv_eur": 160,
       "market_source": "kleinanzeigen",
-      "market_samples": 12,
+      "market_samples": 6,
       "market_observed": "2026-10-21"
     },
     {
       "id": "DDR4_16GB_STANDARD",
       "kind": "ram",
       "label": "16 GB DDR4 RAM",
-      "fmv_eur": 71.3,
+      "fmv_eur": 73.6,
       "aliases": [
         "ddr4 16gb",
         "16gb ddr4"
       ],
       "curated_fmv_eur": 25,
       "market_source": "kleinanzeigen",
-      "market_samples": 8,
+      "market_samples": 7,
       "market_observed": "2026-10-21"
     },
     {
@@ -840,7 +840,7 @@
       "id": "NVME_GEN3_1TB",
       "kind": "storage",
       "label": "1 TB NVMe (Gen3)",
-      "fmv_eur": 109.48,
+      "fmv_eur": 137.08,
       "aliases": [
         "nvme 1tb",
         "1tb nvme",
@@ -848,7 +848,7 @@
       ],
       "curated_fmv_eur": 32,
       "market_source": "kleinanzeigen",
-      "market_samples": 14,
+      "market_samples": 6,
       "market_observed": "2026-10-21"
     },
     {
@@ -865,7 +865,7 @@
       "spec_baseline": 50,
       "curated_fmv_eur": 50,
       "market_source": "kleinanzeigen",
-      "market_samples": 10,
+      "market_samples": 6,
       "market_observed": "2026-10-21"
     },
     {
@@ -901,28 +901,28 @@
       "id": "SATA_SSD_1TB",
       "kind": "storage",
       "label": "1 TB SATA SSD",
-      "fmv_eur": 105.34,
+      "fmv_eur": 128.8,
       "aliases": [
         "ssd 1tb",
         "1tb ssd"
       ],
       "curated_fmv_eur": 25,
       "market_source": "kleinanzeigen",
-      "market_samples": 8,
+      "market_samples": 5,
       "market_observed": "2026-10-21"
     },
     {
       "id": "B620_STANDARD",
       "kind": "board",
       "label": "AM4 / DDR4 Mainboard (B550)",
-      "fmv_eur": 101.2,
+      "fmv_eur": 105.8,
       "aliases": [
         "b550",
         "b550 motherboard"
       ],
       "curated_fmv_eur": 70,
       "market_source": "kleinanzeigen",
-      "market_samples": 22,
+      "market_samples": 8,
       "market_observed": "2026-10-21"
     },
     {
@@ -938,14 +938,14 @@
       "id": "B650_STANDARD",
       "kind": "board",
       "label": "AM5 Mainboard (B650)",
-      "fmv_eur": 110.4,
+      "fmv_eur": 103.5,
       "aliases": [
         "b650"
       ],
       "spec_baseline": 105,
       "curated_fmv_eur": 105,
       "market_source": "kleinanzeigen",
-      "market_samples": 10,
+      "market_samples": 6,
       "market_observed": "2026-10-21"
     },
     {
@@ -958,7 +958,7 @@
       ],
       "curated_fmv_eur": 150,
       "market_source": "kleinanzeigen",
-      "market_samples": 18,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
@@ -980,20 +980,20 @@
       ],
       "curated_fmv_eur": 230,
       "market_source": "kleinanzeigen",
-      "market_samples": 24,
+      "market_samples": 12,
       "market_observed": "2026-10-21"
     },
     {
       "id": "B760_STANDARD",
       "kind": "board",
       "label": "LGA1700 Mainboard (B760)",
-      "fmv_eur": 92.0,
+      "fmv_eur": 91.54,
       "aliases": [
         "b760"
       ],
       "curated_fmv_eur": 85,
       "market_source": "kleinanzeigen",
-      "market_samples": 20,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
@@ -1006,7 +1006,7 @@
       ],
       "curated_fmv_eur": 210,
       "market_source": "kleinanzeigen",
-      "market_samples": 20,
+      "market_samples": 11,
       "market_observed": "2026-10-21"
     },
     {
@@ -1020,7 +1020,7 @@
       ],
       "curated_fmv_eur": 35,
       "market_source": "kleinanzeigen",
-      "market_samples": 12,
+      "market_samples": 5,
       "market_observed": "2026-10-21"
     },
     {
@@ -1034,49 +1034,49 @@
       ],
       "curated_fmv_eur": 55,
       "market_source": "kleinanzeigen",
-      "market_samples": 30,
+      "market_samples": 13,
       "market_observed": "2026-10-21"
     },
     {
       "id": "PSU_750W_GOLD",
       "kind": "psu",
       "label": "750 W Netzteil (80+ Gold)",
-      "fmv_eur": 55.2,
+      "fmv_eur": 50.6,
       "aliases": [
         "750w",
         "750 watt"
       ],
       "curated_fmv_eur": 70,
       "market_source": "kleinanzeigen",
-      "market_samples": 26,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
       "id": "PSU_850W_GOLD",
       "kind": "psu",
       "label": "850 W Netzteil (80+ Gold)",
-      "fmv_eur": 73.6,
+      "fmv_eur": 73.14,
       "aliases": [
         "850w",
         "850 watt"
       ],
       "curated_fmv_eur": 95,
       "market_source": "kleinanzeigen",
-      "market_samples": 18,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
       "id": "PSU_1000W_GOLD",
       "kind": "psu",
       "label": "1000 W Netzteil (80+ Gold)",
-      "fmv_eur": 77.74,
+      "fmv_eur": 73.6,
       "aliases": [
         "1000w",
         "1000 watt"
       ],
       "curated_fmv_eur": 135,
       "market_source": "kleinanzeigen",
-      "market_samples": 28,
+      "market_samples": 13,
       "market_observed": "2026-10-21"
     },
     {
@@ -1090,7 +1090,7 @@
       ],
       "curated_fmv_eur": 200,
       "market_source": "kleinanzeigen",
-      "market_samples": 18,
+      "market_samples": 7,
       "market_observed": "2026-10-21"
     },
     {
@@ -1113,7 +1113,7 @@
       ],
       "curated_fmv_eur": 200,
       "market_source": "kleinanzeigen",
-      "market_samples": 28,
+      "market_samples": 14,
       "market_observed": "2026-10-21"
     },
     {
@@ -1135,7 +1135,7 @@
       "id": "AMD_RYZEN_5_7500F",
       "kind": "cpu",
       "label": "AMD Ryzen 5 7500F",
-      "fmv_eur": 91.08,
+      "fmv_eur": 82.8,
       "tdp_w": 65,
       "aliases": [
         "ryzen 5 7500f",
@@ -1143,7 +1143,7 @@
       ],
       "curated_fmv_eur": 90,
       "market_source": "kleinanzeigen",
-      "market_samples": 26,
+      "market_samples": 10,
       "market_observed": "2026-10-21"
     },
     {
@@ -1158,7 +1158,7 @@
       ],
       "curated_fmv_eur": 110,
       "market_source": "kleinanzeigen",
-      "market_samples": 12,
+      "market_samples": 6,
       "market_observed": "2026-10-21"
     },
     {
@@ -1174,7 +1174,7 @@
       ],
       "curated_fmv_eur": 85,
       "market_source": "kleinanzeigen",
-      "market_samples": 34,
+      "market_samples": 17,
       "market_observed": "2026-10-21"
     },
     {
@@ -1202,7 +1202,22 @@
       ],
       "curated_fmv_eur": 280,
       "market_source": "kleinanzeigen",
-      "market_samples": 12,
+      "market_samples": 6,
+      "market_observed": "2026-10-21"
+    },
+    {
+      "id": "NVIDIA_RTX_5060",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 5060 8GB",
+      "fmv_eur": 345.0,
+      "tdp_w": 145,
+      "aliases": [
+        "rtx 5060",
+        "rtx5060"
+      ],
+      "curated_fmv_eur": 400,
+      "market_source": "kleinanzeigen",
+      "market_samples": 7,
       "market_observed": "2026-10-21"
     }
   ],

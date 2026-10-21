@@ -51,6 +51,7 @@ function fmtEur(value) {
 }
 
 function outcomeBadge(outcome, band) {
+  if (outcome === "near_miss") return el("span", "badge b-nearmiss", "near miss");
   if (outcome === "alerted") return el("span", "badge b-alerted", "alerted");
   if (outcome === "accepted") return el("span", "badge b-accepted", "accepted");
   if (band === "extreme") return el("span", "badge b-extreme", "rejected · extreme");
@@ -75,6 +76,7 @@ function renderCards(summary) {
   card("rejected", byOutcome.rejected || 0, "filtered out");
   card("accepted", byOutcome.accepted || 0, "deal, no alert");
   card("alerted", byOutcome.alerted || 0, "alert sent");
+  card("near miss", byOutcome.near_miss || 0, "15-30 % unter Markt");
   card("alerts", summary.alerts || 0, "discord messages");
   card("llm today", summary.llm_requests_today || 0,
     (summary.llm_tokens_today || 0) + " tokens");

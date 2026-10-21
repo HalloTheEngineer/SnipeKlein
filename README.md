@@ -100,6 +100,33 @@ with the image from `data/prices.json` and therefore updated with every
 deploy, while the harvested values live in the volume's database and are
 merged on top.
 
+### The near miss tier
+
+A listing that is priced 15-30 % under the market is reported as a **near
+miss** - a blue embed that says so explicitly. It is *not* a deal, it is a
+listing worth negotiating on. The actionable band (30-55 %) stays exactly as
+the specification defines it, so a green or yellow alert always means a real
+bargain.
+
+| band | margin | notification |
+|---|---|---|
+| extreme | > 60 % | red, "extremes Preis-Missverhältnis" |
+| actionable | 30-55 % | green/yellow, a deal |
+| near miss | 15-30 % | blue, "kein Deal - zum Verhandeln interessant" |
+| - | < 15 % | nothing |
+
+The near miss obeys the same coverage guard as a deal: a listing whose
+specification is only 30 % known is not informative, so it is dropped instead.
+
+Configure it with `valuation.near_miss_margin_min_pct` and
+`valuation.near_miss_alerts` in `config.toml`.
+
+**How often it fires:** rarely, because the second hand market for complete
+gaming systems is tight. In the measured sample every valued listing landed
+within +/- 12 % of its FMV, so the 15-30 % window stayed empty. Lower
+`near_miss_margin_min_pct` to 5 if you want to see the borderline cases
+too.
+
 ### The modern platform tier
 
 The price table only knows the components it was given, and a new chipset

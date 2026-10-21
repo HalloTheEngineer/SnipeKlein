@@ -101,6 +101,10 @@ class ValuationConfig:
     actionable_margin_min_pct: float = 30.0
     actionable_margin_max_pct: float = 55.0
     extreme_margin_pct: float = 60.0
+    # Listings between this margin and the actionable band are reported as a
+    # "near miss" - clearly not a deal, but worth a look.
+    near_miss_margin_min_pct: float = 15.0
+    near_miss_alerts: bool = True
     asking_to_sold_factor: float = 0.92
     min_price_samples: int = 5
 

@@ -14,6 +14,7 @@ from ..models import (
 COLOR_GREEN = 0x2ECC71
 COLOR_YELLOW = 0xF1C40F
 COLOR_RED = 0xE74C3C
+COLOR_NEAR_MISS = 0x58A6FF
 
 MAX_FIELD_VALUE = 1024
 MAX_DESCRIPTION = 4096
@@ -22,6 +23,7 @@ MAX_TOTAL = 6000
 BAND_LABEL = {
     Band.ACTIONABLE: "Actionable Deal",
     Band.EXTREME: "EXTREME OUTLIER",
+    Band.NEAR_MISS: "Near Miss - kein Deal",
     Band.NOT_A_DEAL: "kein Deal",
 }
 
@@ -36,6 +38,10 @@ def border_color(deal: Deal) -> int:
     """Colour coded fraud risk border (spec 7)."""
     listing = deal.listing
     valuation = deal.valuation
+
+    if valuation.band is Band.NEAR_MISS:
+        # its own colour - a near miss must never look like a deal
+        return COLOR_NEAR_MISS
 
     if valuation.band is Band.EXTREME or deal.risk.level is RiskLevel.RED:
         return COLOR_RED
@@ -111,6 +117,12 @@ def build_embed(deal: Deal) -> dict:
     )
     if valuation.band is Band.EXTREME:
         description += "\n⚠️ **Extremes Preis-Missverhältnis – hohes Risiko für Betrug oder Defekte.**"
+    elif valuation.band is Band.NEAR_MISS:
+        description += (
+            "\n🔵 **Near Miss – kein Deal.** Der Preis liegt nur leicht unter dem "
+            "Marktniveau, das ist kein echter Rabatt. Zum Weiterverhandeln "
+            "interessant, aber kein Fund."
+        )
     if valuation.notes:
         description += "\n" + " / ".join(valuation.notes)
 

@@ -76,6 +76,10 @@ min_coverage = 0.75
 actionable_margin_min_pct = 30.0
 actionable_margin_max_pct = 55.0
 extreme_margin_pct = 60.0
+# Listings with a margin between this value and the actionable band are
+# reported as a "near miss" (blue, clearly not a deal).
+near_miss_margin_min_pct = 15.0
+near_miss_alerts = true
 asking_to_sold_factor = 0.92
 min_price_samples = 5
 

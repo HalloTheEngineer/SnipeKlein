@@ -310,4 +310,6 @@ class ValuationEngine:
             <= self.config.actionable_margin_max_pct
         ):
             return Band.ACTIONABLE
+        if self.config.near_miss_alerts and margin_pct >= self.config.near_miss_margin_min_pct:
+            return Band.NEAR_MISS
         return Band.NOT_A_DEAL

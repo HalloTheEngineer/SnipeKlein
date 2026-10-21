@@ -48,7 +48,9 @@ class Triage:
                 continue
             if not component.patterns:
                 continue
-            if component.search(text) and component.id not in seen:
+            # exact_match keeps the variants apart: a "4070 Ti" title must not
+            # be counted as a 4070 *and* a 4070 Ti
+            if component.exact_match(text) and component.id not in seen:
                 seen.add(component.id)
                 components.append(component)
 

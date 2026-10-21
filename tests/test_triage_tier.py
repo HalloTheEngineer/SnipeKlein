@@ -168,3 +168,21 @@ def test_ddr4_and_unknown_ram_are_different_reasons() -> None:
 
     code, text = _extraction_reason("not_a_complete_system")
     assert code == "not_a_complete_system"
+
+
+# -- variants are counted once ---------------------------------------------
+def test_a_variant_is_not_counted_twice(triage: Triage) -> None:
+    """"RTX 4070 Ti" must not count as a 4070 *and* a 4070 Ti."""
+    card = _card("Gaming PC RTX 4070 Ti 32GB DDR5", price=1000.0)
+    result = triage.evaluate(card)
+    labels = [c.label for c in result.components]
+    assert "NVIDIA GeForce RTX 4070 Ti" in labels
+    assert "NVIDIA GeForce RTX 4070 12GB" not in labels
+
+
+def test_the_base_model_is_counted(triage: Triage) -> None:
+    card = _card("Gaming PC RTX 4070 32GB DDR5", price=1000.0)
+    result = triage.evaluate(card)
+    labels = [c.label for c in result.components]
+    assert "NVIDIA GeForce RTX 4070 12GB" in labels
+    assert "NVIDIA GeForce RTX 4070 Ti" not in labels

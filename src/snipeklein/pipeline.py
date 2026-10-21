@@ -26,6 +26,7 @@ from .notify.discord import DiscordError, DiscordNotifier
 from .store.decisions import (
     OUTCOME_ACCEPTED,
     OUTCOME_ALERTED,
+    OUTCOME_NEAR_MISS,
     OUTCOME_REJECTED,
     Decision,
     DecisionRepo,
@@ -396,7 +397,8 @@ class Pipeline:
             "2026-10-20.v1",
         )
 
-        if valuation.band not in (Band.ACTIONABLE, Band.EXTREME):
+        is_near_miss = valuation.band is Band.NEAR_MISS
+        if valuation.band not in (Band.ACTIONABLE, Band.EXTREME, Band.NEAR_MISS):
             result.reject(f"band:{valuation.band.value}")
             steps.append(
                 {
@@ -453,6 +455,17 @@ class Pipeline:
         deal = Deal(listing=listing, extraction=outcome.extraction, valuation=valuation, risk=risk)
         result.deals.append(deal)
 
+        if is_near_miss:
+            steps.append(
+                {
+                    "stage": "valuation",
+                    "outcome": "near_miss",
+                    "reason": (
+                        f"{valuation.margin_pct:.1f}% below market - not a deal, but close"
+                    ),
+                }
+            )
+
         if dry_run:
             log.info(
                 "[dry-run] %s | margin %.1f%% | %s",
@@ -466,12 +479,14 @@ class Pipeline:
             self._record_decision(
                 card,
                 steps,
-                outcome=OUTCOME_ACCEPTED,
-                stage="alert",
+                outcome=OUTCOME_NEAR_MISS if is_near_miss else OUTCOME_ACCEPTED,
+                stage="valuation" if is_near_miss else "alert",
                 reason=(
-                    f"deal found: {valuation.margin_pct:.1f}% margin, risk {risk.level.value}"
+                    f"near miss: {valuation.margin_pct:.1f}% below market, not a deal"
+                    if is_near_miss
+                    else f"deal found: {valuation.margin_pct:.1f}% margin, risk {risk.level.value}"
                 ),
-                reason_code="dry_run",
+                reason_code="near_miss" if is_near_miss else "dry_run",
                 detail=detail,
             )
             return
@@ -505,16 +520,27 @@ class Pipeline:
         steps.append(
             {"stage": "alert", "outcome": "sent" if sent else "skipped"}
         )
+        if is_near_miss:
+            decision_outcome = OUTCOME_NEAR_MISS
+            decision_stage = "valuation"
+            decision_code = "near_miss"
+            decision_reason = (
+                f"near miss: {valuation.margin_pct:.1f}% below market, not a deal"
+            )
+        else:
+            decision_outcome = OUTCOME_ALERTED if sent else OUTCOME_ACCEPTED
+            decision_stage = "alert"
+            decision_code = "alerted" if sent else "alert_skipped"
+            decision_reason = (
+                f"alert sent: {valuation.margin_pct:.1f}% margin, risk {risk.level.value}"
+            )
         self._record_decision(
             card,
             steps,
-            outcome=OUTCOME_ALERTED if sent else OUTCOME_ACCEPTED,
-            stage="alert",
-            reason=(
-                f"alert sent: {valuation.margin_pct:.1f}% margin, "
-                f"risk {risk.level.value}"
-            ),
-            reason_code="alerted" if sent else "alert_skipped",
+            outcome=decision_outcome,
+            stage=decision_stage,
+            reason=decision_reason,
+            reason_code=decision_code,
             detail=detail,
         )
 

@@ -126,6 +126,34 @@ def test_panel_only_serves_get(config: Config) -> None:
         _stop_server(server, thread)
 
 
+def test_panel_filters_by_near_miss(config: Config) -> None:
+    from snipeklein.store.decisions import OUTCOME_NEAR_MISS, Decision, DecisionRepo
+
+    conn = connect(config.db_path)
+    DecisionRepo(conn).record(
+        Decision(
+            ad_id="2",
+            outcome=OUTCOME_NEAR_MISS,
+            stage="valuation",
+            reason="near miss: 22.0% below market, not a deal",
+            reason_code="near_miss",
+            title="Gaming PC near miss",
+            url="https://example.invalid/2",
+            price=900.0,
+        )
+    )
+    conn.close()
+
+    data = PanelData(config)
+    try:
+        payload = data.ads(outcome=OUTCOME_NEAR_MISS)
+        assert payload["total"] == 1
+        assert payload["ads"][0]["ad_id"] == "2"
+        assert data.summary()["decisions"]["by_outcome"][OUTCOME_NEAR_MISS] == 1
+    finally:
+        data.close()
+
+
 def test_panel_serves_the_ui(config: Config) -> None:
     server, thread = _start_server(config)
     try:

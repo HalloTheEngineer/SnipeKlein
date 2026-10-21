@@ -17,6 +17,7 @@ log = get_logger("snipeklein.store.decisions")
 OUTCOME_REJECTED = "rejected"
 OUTCOME_ACCEPTED = "accepted"
 OUTCOME_ALERTED = "alerted"
+OUTCOME_NEAR_MISS = "near_miss"
 
 
 @dataclass

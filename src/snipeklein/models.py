@@ -14,6 +14,7 @@ class Band(StrEnum):
     NOT_A_DEAL = "not_a_deal"
     ACTIONABLE = "actionable"
     EXTREME = "extreme"
+    NEAR_MISS = "near_miss"
 
 
 class RiskLevel(StrEnum):
