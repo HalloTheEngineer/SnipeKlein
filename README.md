@@ -61,34 +61,88 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 # PROXY_URL=http://user:pass@host:port
 ```
 
+These are read from the environment (the compose file and the CLI both use
+`os.environ`), never from the config file.
+
 ---
 
-## Deployment (Docker, German VPS)
+## Deployment (Docker)
+
+The compose file takes **all secrets from the environment** - there is no
+`env_file` and no committed `.env`:
+
+```yaml
+environment:
+  TZ: Europe/Berlin
+  GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+  DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL:-}"
+  PROXY_URL: "${PROXY_URL:-}"
+```
+
+Locally `docker compose` loads `./.env` automatically for the substitution; on
+a server the platform injects the variables. A missing variable becomes an
+empty string, so the bot starts but reports `llm key MISSING` and `health`
+returns `attention` - the watchdog then posts to Discord. Fail-soft, not a
+crash loop.
+
+Three services, all started by default:
+
+| Service | What it does |
+|---|---|
+| `bot` | polls every 45–85 s, values candidates, sends Discord alerts (container healthcheck = `snipeklein health`) |
+| `price-refresher` | refreshes the FMV table once a day and writes a daily backup to `/app/data/backups/` |
+| `watchdog` | checks `snipeklein health` every 5 minutes and posts to Discord if the bot is unhealthy |
+
+State lives in the named volume `snipeklein-data` (SQLite database + harvested
+prices). The curated component table is **not** in the volume: it is shipped
+with the image from `data/prices.json` and therefore updated with every
+deploy, while the harvested values live in the volume's database and are
+merged on top.
+
+### Local
 
 ```bash
 cp .env.example .env && $EDITOR .env && chmod 600 .env
-docker compose up -d bot                          # the poller
-docker compose --profile harvest up -d            # daily price refresh + backup
-docker compose --profile watchdog up -d           # notifies Discord if the bot is unhealthy
+docker compose up -d --build          # bot + price-refresher + watchdog
 docker compose logs -f bot
+docker compose exec bot snipeklein health
 ```
 
-Three services:
+Only the bot: `docker compose up -d bot`.
 
-| Service | Profile | What it does |
-|---|---|---|
-| `bot` | – | polls every 45–85 s, values candidates, sends Discord alerts |
-| `price-refresher` | `harvest` | refreshes the FMV table once a day and writes a daily backup to `data/backups/` |
-| `watchdog` | `watchdog` | checks `snipeklein health` every 5 minutes and posts to Discord if the bot is unhealthy |
+The CLI in the virtualenv uses the *host* directory `data/` (not the volume),
+so `snipeklein listings` from your shell shows the development state while the
+container keeps its own. `snipeklein health` prints the resolved path.
 
-* All services run as the host user (`SNIPEKLEIN_UID`/`SNIPEKLEIN_GID`, default
-  1000) so the bind mounted `./data` stays writable.
-* `docker compose run --rm bot health` prints the bot state; the same command
-  is the container healthcheck and the watchdog's check.
-* Set `TZ=Europe/Berlin` (already done in the compose file) and deploy on a
-  German/EU host - the site answers foreign data centre IPs with more
-  challenges. If that is not possible, set `PROXY_URL` in `.env` to a German
-  residential proxy.
+### VPS with Dokploy
+
+1. Push this repository to a private GitHub (or Gitea/GitLab) repository.
+2. Dokploy → **Create → Application → Compose** (not *Stack* - Swarm mode has
+   no `build:`), connect the Git provider, select the repository and the
+   `main` branch, compose path `docker-compose.yml`.
+3. **Environment** tab → add `GEMINI_API_KEY` and `DISCORD_WEBHOOK_URL`.
+   Dokploy writes them into a `.env` next to the compose file and passes it
+   with `--env-file`. Leave "create .env file" enabled (it is the default).
+   Optionally add `PROXY_URL` for a German residential proxy.
+4. **General** → **Deploy**. No domain and no ports are needed: this is a
+   worker that only talks to kleinanzeigen.de, the Gemini API and the Discord
+   webhook.
+5. **Advanced → Volume Backups** → enable the backup for the named volume
+   `snipeklein-data` (Dokploy can only snapshot named volumes) so the daily
+   backup also leaves the machine.
+6. **General → Enable Auto Deploy** with the GitHub webhook URL.
+7. Check the deployment: the log must show `cycle done: … errors=0` and
+   `snipeklein health` must print `status: OK`.
+
+Dokploy runs `docker compose -p <app> --env-file <dir>/.env -f <compose> up -d
+--build --remove-orphans` - no `--profile`, which is why the compose file has
+no profiles.
+
+### EU residency
+
+The site answers foreign data centre IPs with more anti-bot challenges
+(spec 3.1). Deploy on a German/EU host, or set `PROXY_URL` in the environment
+to a German residential proxy.
 
 ---
 
@@ -188,7 +242,8 @@ Margin %  = (FMV_net - asking_price) / FMV_net * 100
 
 `data/prices.json` is the source of truth: ~90 components (CPUs, GPUs, RAM,
 storage, boards, PSUs, case/cooler bundle) with aliases that are matched
-case- and space-insensitively.
+case- and space-insensitively. It is shipped with the image (`/app/prices.json`)
+and the harvested values are layered on top from the database in the volume.
 
 Every component keeps the value from the specification as `spec_baseline`
 (e.g. `AMD_RYZEN_7_7800X3D` 310 EUR, `NVIDIA_RTX_4070_12GB` 440 EUR) next to
