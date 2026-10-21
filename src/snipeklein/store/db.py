@@ -180,7 +180,22 @@ def connect(db_path: str | Path) -> sqlite3.Connection:
 # Statements that upgrade an existing database to a newer schema version.
 MIGRATIONS: list[tuple[int, list[str]]] = [
     (3, ["ALTER TABLE ad_decisions ADD COLUMN snippet TEXT DEFAULT ''"]),
-    (4, ["ALTER TABLE ad_decisions ADD COLUMN card_price REAL"]),
+    (
+        4,
+        [
+            "ALTER TABLE ad_decisions ADD COLUMN card_price REAL",
+            # v0.4.1: the stored price was the (possibly stale) search index
+            # price, while the decision used the seller's current price from
+            # the detail page.  The old price becomes the card price and the
+            # real asking price comes from the listings table.
+            (
+                "UPDATE ad_decisions SET card_price = price, "
+                "price = COALESCE((SELECT l.price FROM listings l "
+                "WHERE l.ad_id = ad_decisions.ad_id), price) "
+                "WHERE EXISTS (SELECT 1 FROM listings l WHERE l.ad_id = ad_decisions.ad_id)"
+            ),
+        ],
+    ),
 ]
 
 

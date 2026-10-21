@@ -123,3 +123,45 @@ def test_the_effective_price_and_the_card_price_are_kept_apart(repo: DecisionRep
     assert stored is not None
     assert stored["price"] == 1649.0
     assert stored["card_price"] == 7.0
+
+
+def test_the_v4_migration_backfills_the_price(tmp_path: Path) -> None:
+    """The rows decided before v0.4.1 get the price the decision used."""
+    import sqlite3
+
+    from snipeklein.store.db import migrate, schema_version
+
+    db_path = tmp_path / "old.db"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        CREATE TABLE ad_decisions (
+          ad_id TEXT PRIMARY KEY, first_seen TEXT NOT NULL, updated_at TEXT NOT NULL,
+          query_tag TEXT DEFAULT '', title TEXT DEFAULT '', url TEXT DEFAULT '', price REAL,
+          location TEXT DEFAULT '', snippet TEXT DEFAULT '', is_pro INTEGER DEFAULT 0,
+          outcome TEXT NOT NULL, stage TEXT NOT NULL, reason TEXT DEFAULT '',
+          reason_code TEXT DEFAULT '', steps TEXT DEFAULT '[]', detail TEXT DEFAULT '{}',
+          fingerprint TEXT DEFAULT '');
+        CREATE TABLE listings (
+          ad_id TEXT PRIMARY KEY, url TEXT NOT NULL, title TEXT NOT NULL, price REAL,
+          fetched_at TEXT NOT NULL);
+        INSERT INTO schema_meta VALUES('schema_version','3');
+        INSERT INTO ad_decisions (ad_id, first_seen, updated_at, outcome, stage, price)
+          VALUES ('1','x','x','rejected','valuation',7.0);
+        INSERT INTO listings (ad_id, url, title, price, fetched_at) VALUES ('1','u','t',1649.0,'x');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    conn = sqlite3.connect(db_path)
+    try:
+        migrate(conn)
+        assert schema_version(conn) == 4
+        row = conn.execute(
+            "SELECT price, card_price FROM ad_decisions WHERE ad_id = '1'"
+        ).fetchone()
+        assert row == (1649.0, 7.0)
+    finally:
+        conn.close()
