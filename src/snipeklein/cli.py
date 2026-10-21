@@ -6,26 +6,30 @@ import argparse
 import json
 import sqlite3
 import sys
-from datetime import UTC, datetime
+import time
+from datetime import datetime
 from typing import Any
 
 from .config import Config, ConfigError, load_config
 from .extract.extractor import Extractor
+from .health import EXIT_CODES, collect_health, format_health
 from .ingestion.client import KleinanzeigenClient
 from .ingestion.detail_parser import parse_listing
 from .logging_setup import get_logger, setup_logging
 from .models import Band
-from .notify.discord import DiscordNotifier
+from .notify.discord import DiscordError, DiscordNotifier, post_message
 from .pipeline import Pipeline
+from .schedule import next_daily_run, parse_hhmm
+from .store.backup import create_backup
 from .store.db import connect, migrate
 from .store.repo import (
     AlertRepo,
     FilterStatsRepo,
     ListingRepo,
     PriceRepo,
-    RunRepo,
     UsageRepo,
 )
+from .watchdog import Watchdog
 
 log = get_logger("snipeklein.cli")
 
@@ -136,6 +140,63 @@ def cmd_value(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def _daily_refresh_loop(args: argparse.Namespace, config: Config) -> int:
+    """Refresh the price table once a day at a fixed local time."""
+    from .valuation.harvester import PriceHarvester
+    from .valuation.table import PriceTable
+
+    hour, minute = parse_hhmm(args.daily_at)
+    conn = _db(config)
+    try:
+        repo = PriceRepo(conn)
+        while True:
+            now = datetime.now()
+            target = next_daily_run(now, hour, minute)
+            wait = max(0.0, (target - now).total_seconds())
+            print(
+                f"[price-refresher] next refresh at {target.isoformat(timespec='seconds')} "
+                f"(in {wait / 3600:.1f} h)",
+                flush=True,
+            )
+            time.sleep(wait)
+            table = PriceTable.load(config.prices_path, repo.all_prices())
+            client = KleinanzeigenClient(config.ingestion)
+            try:
+                harvester = PriceHarvester(
+                    client,
+                    table,
+                    config.valuation,
+                    repo,
+                    config.ingestion.base_url,
+                    force=args.force,
+                    curated=PriceTable.load(config.prices_path),
+                )
+                results = harvester.harvest()
+            except Exception as exc:
+                print(f"[price-refresher] refresh failed: {exc}", file=sys.stderr, flush=True)
+            else:
+                refreshed = [r for r in results if r.fmv_eur is not None]
+                print(
+                    f"[price-refresher] refreshed {len(refreshed)}/{len(results)} components",
+                    flush=True,
+                )
+            finally:
+                client.close()
+            if args.backup:
+                created = create_backup(
+                    config.db_path,
+                    config.db_path.parent / "backups",
+                    config.prices_path,
+                    keep=args.keep,
+                )
+                for path in created:
+                    print(f"[price-refresher] backup {path}", flush=True)
+    except KeyboardInterrupt:
+        return 0
+    finally:
+        conn.close()
+
+
 def cmd_prices(args: argparse.Namespace) -> int:
     config = _config(args)
     conn = _db(config)
@@ -177,6 +238,9 @@ def cmd_prices(args: argparse.Namespace) -> int:
         # refresh
         from .valuation.harvester import PriceHarvester
         from .valuation.table import PriceTable
+
+        if args.daily_at:
+            return _daily_refresh_loop(args, config)
 
         repo = PriceRepo(conn)
         if args.reset_observations:
@@ -314,78 +378,75 @@ def cmd_health(args: argparse.Namespace) -> int:
     config = _config(args)
     conn = _db(config)
     try:
-        last_run = RunRepo(conn).last()
-        seen = conn.execute("SELECT COUNT(*) AS c FROM seen_ads").fetchone()["c"]
-        listings = ListingRepo(conn).count()
-        alerts = conn.execute("SELECT COUNT(*) AS c FROM alerts").fetchone()["c"]
-        llm_key = bool(config.llm.api_key())
-        webhook = bool(config.notify.webhook_url())
-        usage = UsageRepo(conn).daily(days=1)
-        today_requests = sum(int(row["requests"]) for row in usage)
-        today_429 = sum(int(row["quota_429"]) for row in usage)
-        today_errors = sum(int(row["errors"]) for row in usage)
-
-        run_age_s: float | None = None
-        if last_run and last_run.get("started_at"):
-            try:
-                started = datetime.fromisoformat(last_run["started_at"])
-                run_age_s = (datetime.now(UTC) - started).total_seconds()
-            except ValueError:
-                run_age_s = None
-
-        stale = run_age_s is None or run_age_s > 3 * max(
-            config.ingestion.poll_interval_max_s, 60
-        )
-        errors = bool(last_run and last_run.get("errors"))
-
-        payload = {
-            "config": str(config.path),
-            "db": str(config.db_path),
-            "last_run": last_run,
-            "last_run_age_s": round(run_age_s, 1) if run_age_s is not None else None,
-            "seen_ads": seen,
-            "listings": listings,
-            "alerts": alerts,
-            "llm_configured": llm_key,
-            "webhook_configured": webhook,
-            "llm_requests_today": today_requests,
-            "llm_quota_errors_today": today_429,
-            "llm_errors_today": today_errors,
-            "queries": [q.tag for q in config.queries],
-            "status": "ok" if (llm_key and webhook and not stale and not errors) else "attention",
-        }
+        report = collect_health(config, conn)
         if args.json:
-            _print_json(payload)
+            _print_json(report)
         else:
-            print(f"config      : {payload['config']}")
-            print(f"database    : {payload['db']}")
-            if last_run:
-                print(
-                    f"last run    : {last_run['started_at']} "
-                    f"({payload['last_run_age_s']}s ago) seen={last_run['ads_seen']} "
-                    f"new={last_run['ads_new']} alerts={last_run['alerts_sent']} "
-                    f"errors={last_run['errors']}"
-                )
-            else:
-                print("last run    : never")
-            print(f"seen ads    : {seen}")
-            print(f"listings    : {listings}")
-            print(f"alerts      : {alerts}")
-            print(f"llm key     : {'set' if llm_key else 'MISSING'}")
-            print(f"discord hook: {'set' if webhook else 'MISSING'}")
-            print(
-                f"llm today   : {today_requests} requests, {today_errors} errors, "
-                f"{today_429} quota errors"
-            )
-            print(f"queries     : {', '.join(payload['queries'])}")
-            print(f"status      : {payload['status'].upper()}")
-            if stale:
-                print("             -> no recent run: the bot is probably not running")
-            if errors:
-                print("             -> the last run had errors, check the logs")
-        return 0 if payload["status"] == "ok" else 1
+            print(format_health(report))
+        return EXIT_CODES.get(report["status"], 1)
     finally:
         conn.close()
+
+
+def cmd_watchdog(args: argparse.Namespace) -> int:
+    """Watch the bot and report problems to Discord."""
+    config = _config(args)
+    webhook = config.notify.webhook_url()
+    if not webhook:
+        print(
+            f"webhook url missing - set {config.notify.webhook_url_env} in the environment",
+            file=sys.stderr,
+        )
+        return 2
+
+    def report() -> dict:
+        conn = _db(config)
+        try:
+            return collect_health(config, conn)
+        finally:
+            conn.close()
+
+    def notify(message: str) -> bool:
+        try:
+            post_message(webhook, message, config.notify.username)
+            return True
+        except DiscordError as exc:
+            print(f"could not deliver the watchdog message: {exc}", file=sys.stderr)
+            return False
+
+    state_path = config.db_path.parent / "watchdog_state.json"
+    watchdog = Watchdog(
+        config=config,
+        report=report,
+        notify=notify,
+        interval=args.interval if args.interval is not None else config.watchdog.interval,
+        grace=args.grace if args.grace is not None else config.watchdog.grace,
+        failures=args.failures if args.failures is not None else config.watchdog.failures,
+        cooldown=args.cooldown if args.cooldown is not None else config.watchdog.cooldown,
+        state_path=state_path,
+    )
+    try:
+        watchdog.run()
+    except KeyboardInterrupt:
+        return 0
+    return 0
+
+
+def cmd_backup(args: argparse.Namespace) -> int:
+    """Write a consistent snapshot of the database and the price table."""
+    config = _config(args)
+    backup_dir = config.db_path.parent / "backups"
+    created = create_backup(
+        config.db_path,
+        backup_dir,
+        config.prices_path,
+        keep=args.keep,
+    )
+    for path in created:
+        print(f"wrote {path}")
+    if not created:
+        print("nothing to back up")
+    return 0
 
 
 def cmd_config(args: argparse.Namespace) -> int:
@@ -646,6 +707,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="delete the stored price observations before harvesting",
     )
+    prices.add_argument(
+        "--daily-at",
+        metavar="HH:MM",
+        help="run the refresh once a day at the given local time instead of once",
+    )
+    prices.add_argument(
+        "--backup",
+        action="store_true",
+        help="write a consistent backup after every refresh (only with --daily-at)",
+    )
+    prices.add_argument("--keep", type=int, default=14, help="number of backups to keep")
     prices.set_defaults(func=cmd_prices)
 
     listings = sub.add_parser("listings", help="show ingested listings")
@@ -688,6 +760,25 @@ def build_parser() -> argparse.ArgumentParser:
     notify = sub.add_parser("notify", help="post a plain text message to the discord webhook")
     notify.add_argument("message", help="the text to send")
     notify.set_defaults(func=cmd_notify)
+
+    watchdog = sub.add_parser("watchdog", help="watch the bot and report problems to discord")
+    watchdog.add_argument(
+        "--interval", type=int, default=None, help="seconds between checks (config: 300)"
+    )
+    watchdog.add_argument(
+        "--grace", type=int, default=None, help="seconds without alarming after the start (config: 600)"
+    )
+    watchdog.add_argument(
+        "--failures", type=int, default=None, help="consecutive failed checks before an alarm (config: 3)"
+    )
+    watchdog.add_argument(
+        "--cooldown", type=int, default=None, help="seconds between repeated alarms (config: 21600)"
+    )
+    watchdog.set_defaults(func=cmd_watchdog)
+
+    backup = sub.add_parser("backup", help="write a consistent snapshot of the state")
+    backup.add_argument("--keep", type=int, default=14, help="number of backups to keep")
+    backup.set_defaults(func=cmd_backup)
 
     test_alert = sub.add_parser("test-alert", help="send a synthetic deal to the discord webhook")
     test_alert.add_argument("--dry-run", action="store_true", help="only print the embed")

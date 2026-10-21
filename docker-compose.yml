@@ -46,17 +46,7 @@ services:
   watchdog:
     <<: *snipeklein
     container_name: snipeklein-watchdog
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        while true; do
-          if ! snipeklein health > /tmp/health.txt 2>&1; then
-            echo "[watchdog] health check failed:"
-            cat /tmp/health.txt
-            snipeklein notify "SnipeKlein is unhealthy - check the logs: $(date -Iseconds)" || true
-          fi
-          sleep 300
-        done
+    command: ["watchdog"]
     logging:
       driver: json-file
       options:
@@ -66,18 +56,9 @@ services:
   price-refresher:
     <<: *snipeklein
     container_name: snipeklein-prices
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        while true; do
-          echo "[price-refresher] refreshing component prices"
-          snipeklein prices refresh || echo "[price-refresher] refresh failed"
-          echo "[price-refresher] backing up the state"
-          mkdir -p /app/data/backups
-          cp /app/data/snipeklein.db /app/data/backups/snipeklein-$(date +%Y%m%d).db 2>/dev/null || true
-          cp /app/data/prices.json /app/data/backups/prices-$(date +%Y%m%d).json 2>/dev/null || true
-          sleep 86400
-        done
+    # Refresh the FMV table once a day at 03:00 (server local time, TZ is set
+    # to Europe/Berlin above) and write a consistent backup afterwards.
+    command: ["prices", "refresh", "--daily-at", "03:00", "--backup"]
     logging:
       driver: json-file
       options:

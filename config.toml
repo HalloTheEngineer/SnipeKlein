@@ -93,6 +93,15 @@ username = "SnipeKlein"
 # Re-send an alert when the computed payload changed (e.g. refreshed FMV table).
 repeat_on_change = false
 
+[watchdog]
+# Failure watchdog: how often the bot is checked and when Discord is told.
+# The grace period covers the first (slow) poll cycle, so a fresh deployment
+# never produces a false alarm.
+interval = 300       # seconds between checks
+grace = 600         # seconds without alarming after the watchdog started
+failures = 3        # consecutive failed checks before an alarm
+cooldown = 21600    # seconds between repeated alarms (6 h)
+
 [risk]
 account_new_days = 30
 account_very_new_days = 90

@@ -45,6 +45,16 @@ class QueryConfig:
 
 
 @dataclass(frozen=True)
+class WatchdogConfig:
+    """Policy of the failure watchdog (spec: quiet by default)."""
+
+    interval: int = 300
+    grace: int = 600
+    failures: int = 3
+    cooldown: int = 21600
+
+
+@dataclass(frozen=True)
 class StorageConfig:
     observation_retention_days: int = 30
     listing_retention_days: int = 30
@@ -126,6 +136,7 @@ class Config:
     notify: NotifyConfig = field(default_factory=NotifyConfig)
     risk: RiskConfig = field(default_factory=RiskConfig)
     storage: StorageConfig = field(default_factory=StorageConfig)
+    watchdog: WatchdogConfig = field(default_factory=WatchdogConfig)
     queries: list[QueryConfig] = field(default_factory=list)
     path: Path = DEFAULT_CONFIG_PATH
 
@@ -215,6 +226,7 @@ def load_config(
         notify=_build(NotifyConfig, _section(raw, "notify")),
         risk=_build(RiskConfig, _section(raw, "risk")),
         storage=_build(StorageConfig, _section(raw, "storage")),
+        watchdog=_build(WatchdogConfig, _section(raw, "watchdog")),
         queries=queries,
         path=cfg_path,
     )

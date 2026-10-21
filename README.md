@@ -90,14 +90,50 @@ Three services, all started by default:
 | Service | What it does |
 |---|---|
 | `bot` | polls every 45–85 s, values candidates, sends Discord alerts (container healthcheck = `snipeklein health`) |
-| `price-refresher` | refreshes the FMV table once a day and writes a daily backup to `/app/data/backups/` |
-| `watchdog` | checks `snipeklein health` every 5 minutes and posts to Discord if the bot is unhealthy |
+| `price-refresher` | refreshes the FMV table every day at 03:00 (server local time) and writes a consistent backup afterwards |
+| `watchdog` | checks the bot every 5 minutes and posts to Discord if it is unhealthy |
 
 State lives in the named volume `snipeklein-data` (SQLite database + harvested
 prices). The curated component table is **not** in the volume: it is shipped
 with the image from `data/prices.json` and therefore updated with every
 deploy, while the harvested values live in the volume's database and are
 merged on top.
+
+### Health and the watchdog
+
+`snipeklein health` reports one of three states:
+
+| state | meaning | exit code |
+|---|---|---|
+| `ok` | the last run is recent, error free, secrets present | 0 |
+| `starting` | no run recorded yet - a fresh deployment is finishing its first cycle | 0 |
+| `attention` | the last run is stale, had errors, or a secret is missing | 1 |
+
+`starting` exists so that a fresh deployment is never reported as broken -
+the first poll cycle takes ~45 s and the watchdog used to fire a false alarm
+during exactly that window.
+
+The watchdog is deliberately quiet (all values in `config.toml` under
+`[watchdog]`):
+
+| setting | default | meaning |
+|---|---|---|
+| `interval` | 300 s | how often the bot is checked |
+| `grace` | 600 s | no alarm during this period after the watchdog starts |
+| `failures` | 3 | consecutive failed checks before Discord is told |
+| `cooldown` | 21600 s | at most one alarm per 6 h while the bot stays broken |
+
+One "back to normal" message is sent when the bot recovers. The state
+(consecutive failures, last alarm) lives in `data/watchdog_state.json` in the
+volume, so restarting the watchdog does not re-alarm.
+
+### Backups
+
+`snipeklein backup` writes a **consistent** snapshot of the database using
+SQLite's online backup API (copying a WAL-mode file with `cp` would miss the
+transactions that still live in the `-wal` file), copies the price table next
+to it and prunes to the last 14 daily backups. The price refresher runs it
+after every refresh.
 
 ### Local
 
@@ -153,6 +189,7 @@ to a German residential proxy.
 | `snipeklein poll [--once] [--query TAG] [--dry-run] [--reset-seen]` | poll for new listings (continuous by default) |
 | `snipeklein value <ad_id\|url> [--json] [--embed]` | value a single listing; `--embed` prints the Discord embed |
 | `snipeklein prices refresh [--force] [--reset-observations]` | refresh the FMV table from the used market |
+| `snipeklein prices refresh --daily-at 03:00 [--backup]` | refresh once a day at a fixed time (the price refresher container) |
 | `snipeklein prices show` | show the effective component table with provenance |
 | `snipeklein prices import file.csv` | import manual corrections (`component_id;fmv_eur`) |
 | `snipeklein listings [--hours N]` | ingested listings with margins |
@@ -162,6 +199,8 @@ to a German residential proxy.
 | `snipeklein health` | configuration, database and quota state |
 | `snipeklein triage <ad_id\|url>` | explain the cheap triage decision |
 | `snipeklein extract` | smoke test the extraction against the live Gemini API |
+| `snipeklein watchdog` | watch the bot and report problems to Discord (used by the watchdog container) |
+| `snipeklein backup` | write a consistent snapshot of the database and the price table |
 | `snipeklein test-alert [--dry-run]` | send a synthetic deal to the Discord webhook |
 | `snipeklein notify "text"` | post a plain text message to the Discord webhook |
 | `snipeklein prune` | delete expired data (seen-ids, old listings, old observations) |

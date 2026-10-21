@@ -105,3 +105,15 @@ class DiscordNotifier:
 def _webhook_key(url: str) -> str:
     tail = url.rstrip("/").rsplit("/", 1)[-1]
     return hashlib.sha256(tail.encode("utf-8")).hexdigest()[:12]
+
+
+def post_message(webhook_url: str, message: str, username: str = "SnipeKlein") -> bool:
+    """Post a plain text message to a Discord webhook."""
+    if not webhook_url:
+        raise DiscordError("webhook url missing")
+    payload = {"username": username, "content": message[:2000]}
+    with httpx.Client(timeout=20) as client:
+        response = client.post(webhook_url, json=payload)
+    if response.status_code in (200, 204):
+        return True
+    raise DiscordError(f"discord returned HTTP {response.status_code}: {response.text[:200]}")
