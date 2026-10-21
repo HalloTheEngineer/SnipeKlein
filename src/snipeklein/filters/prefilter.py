@@ -72,6 +72,21 @@ COMPONENT_PATTERNS = [
     r"\bddr5\b",
 ]
 
+# A title that hints at a current generation (DDR5 capable) platform.  Ads
+# like this are worth an extraction even when the price table does not know
+# the exact model yet - the description is where the spec usually is.
+MODERN_PLATFORM_PATTERNS = [
+    r"\brtx\s?40[6-9]0\b",
+    r"\brtx\s?50[0-9]0\b",
+    r"\brx\s?7[6-9]00\b",
+    r"\bryzen\s?[3579]\s?(7[0-9]00|9[0-9]00)\b",
+    r"\b(7[0-9]00x3d|9800x3d|7900x3d|9700x|9600x|7700x|7500f|8400f)\b",
+    r"\bi[579]-?1[234][0-9]00\b",
+    r"\bam5\b",
+    r"\b(b650|b650e|x670|x670e|z790|b760)\b",
+    r"\bddr5\b",
+]
+
 
 @dataclass(frozen=True)
 class PrefilterResult:
@@ -95,6 +110,14 @@ _EXCLUDE_TITLE = _compile(EXCLUDE_TITLE_PATTERNS)
 _EXCLUDE_SPEC = _compile(EXCLUDE_SPEC_PATTERNS)
 _SYSTEM = _compile(SYSTEM_PATTERNS)
 _COMPONENT = _compile(COMPONENT_PATTERNS)
+_MODERN = _compile(MODERN_PLATFORM_PATTERNS)
+
+
+def is_modern_platform(text: str) -> bool:
+    """Does the title hint at a current generation (DDR5 capable) platform?"""
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _MODERN)
 
 
 def evaluate(text: str) -> PrefilterResult:

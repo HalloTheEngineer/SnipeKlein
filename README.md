@@ -100,6 +100,28 @@ with the image from `data/prices.json` and therefore updated with every
 deploy, while the harvested values live in the volume's database and are
 merged on top.
 
+### The modern platform tier
+
+The price table only knows the components it was given, and a new chipset
+appears every few months.  Instead of dropping such an ad, the triage lets it
+through when the **title hints at a current generation platform** (RTX 40/50
+series, AM5 board, Ryzen 7000/9000, 12th gen+ Intel, or the literal
+"DDR5"):
+
+| components recognised | title hints modern | outcome |
+|---|---|---|
+| 2 or more | either | margin check as usual |
+| 0-1 | yes | the ad goes to the extraction - **the description is where the specification usually is** |
+| 0-1 | no | dropped as `triage_components` (older DDR4 hardware, no LLM waste) |
+
+Switch it off with `filters.modern_platform_tier = false` in `config.toml`.
+
+Cost: the extraction is now on the critical path of a cycle.  A *cold* cycle
+(after a fresh database) takes a few minutes because every new ad costs a
+detail page and an LLM call; the steady state is a few seconds per cycle
+because known ads are skipped.  The LLM rate is capped locally at
+`llm.max_rpm`.
+
 ### The decision panel
 
 Every ad the bot looks at is recorded with the decision it made and why - the
@@ -235,6 +257,7 @@ to a German residential proxy.
 | `snipeklein triage <ad_id\|url>` | explain the cheap triage decision |
 | `snipeklein extract` | smoke test the extraction against the live Gemini API |
 | `snipeklein panel [--port 8137]` | serve the read-only decision panel |
+| `snipeklein panel --check` | verify that the panel can read the database |
 | `snipeklein panel --check` | verify that the panel can read the database |
 | `snipeklein watchdog` | watch the bot and report problems to Discord (used by the watchdog container) |
 | `snipeklein backup` | write a consistent snapshot of the database and the price table |

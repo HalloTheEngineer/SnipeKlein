@@ -82,6 +82,12 @@ function renderCards(summary) {
   card("last run", last ? fmtTime(last.started_at) : "never",
     last ? "seen " + (last.ads_seen || 0) + " · alerts " + (last.alerts_sent || 0) : "");
 
+  const watchdog = summary.watchdog || {};
+  const alerting = watchdog.alerting ? "ALARMING" : (watchdog.failures || 0) + " fails";
+  card("watchdog", alerting, watchdog.last_alert
+    ? "last alarm " + fmtTime(new Date(watchdog.last_alert * 1000).toISOString())
+    : "no alarm yet");
+
   const select = $("#query_tag");
   const current = select.value;
   select.textContent = "";
@@ -158,6 +164,12 @@ function openAd(adId) {
     head.appendChild(link);
     drawer.appendChild(head);
     drawer.appendChild(el("div", "muted mono", ad.ad_id + " · " + (ad.url || "")));
+    if (ad.snippet) {
+      const snippet = el("div", "muted");
+      snippet.style.margin = "6px 0";
+      snippet.textContent = "what the triage saw: " + ad.snippet;
+      drawer.appendChild(snippet);
+    }
 
     const badges = el("div");
     badges.style.margin = "10px 0";

@@ -25,14 +25,21 @@ STATUS_ATTENTION = "attention"
 EXIT_CODES = {STATUS_OK: 0, STATUS_STARTING: 0, STATUS_ATTENTION: 1}
 
 
-def collect_health(config: Config, conn: sqlite3.Connection) -> dict[str, Any]:
-    """Build the health report of the running bot."""
+def collect_health(
+    config: Config, conn: sqlite3.Connection, check_secrets: bool = True
+) -> dict[str, Any]:
+    """Build the health report of the running bot.
+
+    ``check_secrets`` is False for the panel: it runs in its own container
+    and cannot see the bot's secrets, so it must not report them as missing.
+    The watchdog (which has them) stays the authority on that.
+    """
     last_run = RunRepo(conn).last()
     seen = conn.execute("SELECT COUNT(*) AS c FROM seen_ads").fetchone()["c"]
     listings = ListingRepo(conn).count()
     alerts = conn.execute("SELECT COUNT(*) AS c FROM alerts").fetchone()["c"]
-    llm_key = bool(config.llm.api_key())
-    webhook = bool(config.notify.webhook_url())
+    llm_key = bool(config.llm.api_key()) if check_secrets else None
+    webhook = bool(config.notify.webhook_url()) if check_secrets else None
     usage = UsageRepo(conn).daily(days=1)
     today_requests = sum(int(row["requests"]) for row in usage)
     today_429 = sum(int(row["quota_429"]) for row in usage)
@@ -54,10 +61,11 @@ def collect_health(config: Config, conn: sqlite3.Connection) -> dict[str, Any]:
     errors = bool(last_run and last_run.get("errors"))
 
     missing: list[str] = []
-    if not llm_key:
-        missing.append("llm key")
-    if not webhook:
-        missing.append("discord webhook")
+    if check_secrets:
+        if not llm_key:
+            missing.append("llm key")
+        if not webhook:
+            missing.append("discord webhook")
 
     if never_ran:
         status = STATUS_STARTING
@@ -79,6 +87,7 @@ def collect_health(config: Config, conn: sqlite3.Connection) -> dict[str, Any]:
         "alerts": alerts,
         "llm_configured": llm_key,
         "webhook_configured": webhook,
+        "secrets": "checked" if check_secrets else "unknown",
         "missing": missing,
         "llm_requests_today": today_requests,
         "llm_quota_errors_today": today_429,
@@ -86,6 +95,12 @@ def collect_health(config: Config, conn: sqlite3.Connection) -> dict[str, Any]:
         "queries": [q.tag for q in config.queries],
         "status": status,
     }
+
+
+def _secret_state(value: bool | None) -> str:
+    if value is None:
+        return "not visible here"
+    return "set" if value else "MISSING"
 
 
 def format_health(report: dict[str, Any]) -> str:
@@ -107,8 +122,8 @@ def format_health(report: dict[str, Any]) -> str:
         f"seen ads    : {report['seen_ads']}",
         f"listings    : {report['listings']}",
         f"alerts      : {report['alerts']}",
-        f"llm key     : {'set' if report['llm_configured'] else 'MISSING'}",
-        f"discord hook: {'set' if report['webhook_configured'] else 'MISSING'}",
+        f"llm key     : {_secret_state(report['llm_configured'])}",
+        f"discord hook: {_secret_state(report['webhook_configured'])}",
         f"llm today   : {report['llm_requests_today']} requests, "
         f"{report['llm_errors_today']} errors, {report['llm_quota_errors_today']} quota errors",
         f"queries     : {', '.join(report['queries'])}",

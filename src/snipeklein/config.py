@@ -89,6 +89,9 @@ class FilterConfig:
     required_ram_generation: str = "DDR5"
     triage_min_margin_pct: float = 15.0
     triage_min_components: int = 2
+    # Let ads whose title hints at a current platform through to the extraction
+    # even when the price table does not know the model yet.
+    modern_platform_tier: bool = True
 
 
 @dataclass(frozen=True)
@@ -112,7 +115,7 @@ class LlmConfig:
     thinking_level: str = "minimal"
     max_rpm: int = 6
     max_attempts: int = 4
-    timeout_s: int = 45
+    timeout_s: int = 30
     enable_context_cache: bool = True
 
     def api_key(self) -> str:

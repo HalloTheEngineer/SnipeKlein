@@ -60,6 +60,8 @@ REASON_TEXTS = {
     "triage_no_value": "no component value could be derived",
     "not_a_complete_system": "it is not a complete system",
     "ram_generation": "the RAM is not DDR5",
+    "ram_unknown": "the RAM generation was not mentioned - treated as not DDR5",
+    "triage_modern_tier": "the price table does not know this system yet",
     "band": "the margin is not in the 30-55% deal band",
     "coverage": "too much of the system is unknown",
     "no_price": "the listing has no asking price",
@@ -70,6 +72,23 @@ REASON_TEXTS = {
     "alert_skipped": "the alert was skipped",
     "dry_run": "dry run - no alert was sent",
 }
+
+
+def _extraction_reason(rejected: str) -> tuple[str, str]:
+    """Split the extraction rejection into a code and a readable text.
+
+    "the ad says DDR4" and "the ad never mentioned the RAM" are both a
+    rejection, but only the first one is a real disqualification - the
+    second one is a gap in the ad and is worth seeing in the panel.
+    """
+    code = rejected.split(":")[0] if rejected else "extraction"
+    tail = rejected.split(":", 1)[1].strip() if ":" in rejected else ""
+    if code == "ram_generation" and tail.upper() == "UNKNOWN":
+        return (
+            "ram_unknown",
+            "the RAM generation was not mentioned - treated as not DDR5",
+        )
+    return code, _reason_text(rejected)
 
 
 def _reason_text(code: str) -> str:
@@ -259,6 +278,7 @@ class Pipeline:
                 "stage": "triage",
                 "outcome": "passed" if triage.passed else "rejected",
                 "reason": triage.reason if not triage.passed else "",
+                "note": triage.note,
                 "coarse_fmv": round(triage.coarse_fmv, 2),
                 "coarse_margin_pct": round(triage.coarse_margin_pct, 1),
             }
@@ -335,13 +355,14 @@ class Pipeline:
                 }
             )
             result.reject(outcome.rejected or "extraction_rejected")
+            code, reason = _extraction_reason(outcome.rejected)
             self._record_decision(
                 card,
                 steps,
                 outcome=OUTCOME_REJECTED,
                 stage="extraction",
-                reason=_reason_text(outcome.rejected),
-                reason_code=outcome.rejected.split(":")[0] if outcome.rejected else "extraction",
+                reason=reason,
+                reason_code=code,
                 detail=detail,
             )
             return
@@ -521,6 +542,7 @@ class Pipeline:
                     url=card.url,
                     price=card.price,
                     location=card.location_text,
+                    snippet=card.snippet[:400],
                     is_pro=card.is_pro,
                     steps=steps,
                     detail=detail or {},

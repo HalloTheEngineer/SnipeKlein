@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import threading
 from datetime import UTC, datetime, timedelta
@@ -88,6 +89,7 @@ class PanelData:
             "llm_requests_today": today_requests,
             "llm_tokens_today": today_tokens,
             "last_run": last_run,
+            "watchdog": self.watchdog(),
             "queries": [q.tag for q in self.config.queries],
         }
 
@@ -153,4 +155,16 @@ class PanelData:
         return [dict(row) for row in rows]
 
     def health(self) -> dict[str, Any]:
-        return collect_health(self.config, self.conn)
+        # The panel runs in its own container and cannot see the bot's
+        # secrets, so it does not judge them.
+        return collect_health(self.config, self.conn, check_secrets=False)
+
+    def watchdog(self) -> dict[str, Any]:
+        """The watchdog state file (read only)."""
+        path = Path(self.config.db_path).parent / "watchdog_state.json"
+        if not path.exists():
+            return {"state": "unknown", "reason": "no watchdog state file"}
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            return {"state": "unknown", "reason": str(exc)}

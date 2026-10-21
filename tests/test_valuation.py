@@ -137,8 +137,10 @@ def test_valuation_flags_a_real_deal(engine: ValuationEngine) -> None:
         motherboard_chipset="B650",
         psu_wattage=750,
     )
-    valuation = engine.value(extraction, _listing(price=600.0))
-    assert valuation.margin_pct > 30
+    # the price is derived from the table, so the test survives a price update
+    fair = engine.value(extraction, _listing(price=1000.0))
+    valuation = engine.value(extraction, _listing(price=fair.fmv_net * 0.5))
+    assert valuation.margin_pct == pytest.approx(50.0, abs=1.0)
     assert valuation.band is Band.ACTIONABLE
 
 

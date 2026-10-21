@@ -33,6 +33,7 @@ class Decision:
     url: str = ""
     price: float | None = None
     location: str = ""
+    snippet: str = ""
     is_pro: bool = False
     steps: list[dict[str, Any]] = field(default_factory=list)
     detail: dict[str, Any] = field(default_factory=dict)
@@ -52,6 +53,7 @@ class Decision:
                 "title": self.title,
                 "price": self.price,
                 "location": self.location,
+                "snippet": self.snippet,
                 "steps": self.steps,
                 "detail": self.detail,
             },
@@ -76,8 +78,9 @@ class DecisionRepo:
             """
             INSERT INTO ad_decisions (
                 ad_id, first_seen, updated_at, query_tag, title, url, price, location,
-                is_pro, outcome, stage, reason, reason_code, steps, detail, fingerprint
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                snippet, is_pro, outcome, stage, reason, reason_code, steps, detail,
+                fingerprint
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(ad_id) DO UPDATE SET
                 updated_at  = excluded.updated_at,
                 query_tag   = excluded.query_tag,
@@ -104,6 +107,7 @@ class DecisionRepo:
                 decision.url,
                 decision.price,
                 decision.location,
+                decision.snippet,
                 int(decision.is_pro),
                 decision.outcome,
                 decision.stage,

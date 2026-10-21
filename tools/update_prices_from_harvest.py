@@ -17,7 +17,7 @@ from pathlib import Path
 
 PRICES = Path(__file__).resolve().parent.parent / "data" / "prices.json"
 
-MIN_SAMPLES = 4
+MIN_SAMPLES = 5
 
 # The baseline values from project_plan.md (spec 5.1).
 SPEC_BASELINE = {

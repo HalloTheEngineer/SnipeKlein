@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS ad_decisions (
     url          TEXT DEFAULT '',
     price        REAL,
     location     TEXT DEFAULT '',
+    snippet      TEXT DEFAULT '',
     is_pro       INTEGER DEFAULT 0,
     outcome      TEXT NOT NULL,
     stage        TEXT NOT NULL,
@@ -174,9 +176,34 @@ def connect(db_path: str | Path) -> sqlite3.Connection:
     return conn
 
 
+# Statements that upgrade an existing database to a newer schema version.
+MIGRATIONS: list[tuple[int, list[str]]] = [
+    (3, ["ALTER TABLE ad_decisions ADD COLUMN snippet TEXT DEFAULT ''"]),
+]
+
+
+def schema_version(conn: sqlite3.Connection) -> int:
+    try:
+        row = conn.execute(
+            "SELECT value FROM schema_meta WHERE key = 'schema_version'"
+        ).fetchone()
+    except sqlite3.Error:
+        return 0
+    return int(row[0]) if row else 0
+
+
 def migrate(conn: sqlite3.Connection) -> None:
-    """Create the schema if needed and record the schema version."""
+    """Create the schema if needed and upgrade it to the current version."""
     conn.executescript(_SCHEMA)
+    version = schema_version(conn)
+    for target, statements in MIGRATIONS:
+        if version >= target:
+            continue
+        for statement in statements:
+            with contextlib.suppress(sqlite3.OperationalError):
+                # the column may already exist - nothing to do then
+                conn.execute(statement)
+        version = target
     conn.execute(
         "INSERT INTO schema_meta(key, value) VALUES('schema_version', ?) "
         "ON CONFLICT(key) DO UPDATE SET value=excluded.value",

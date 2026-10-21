@@ -58,6 +58,14 @@ def test_unchanged_decision_is_not_written_again(repo: DecisionRepo) -> None:
     assert repo.get("1")["stage"] == "triage"
 
 
+def test_the_snippet_is_stored(repo: DecisionRepo) -> None:
+    """The panel shows what the triage actually saw."""
+    repo.record(_decision("1", snippet="AMD Ryzen 7 7800X3D, RTX 4070, 32 GB DDR5"))
+    stored = repo.get("1")
+    assert stored is not None
+    assert stored["snippet"] == "AMD Ryzen 7 7800X3D, RTX 4070, 32 GB DDR5"
+
+
 def test_changed_price_updates_the_row(repo: DecisionRepo) -> None:
     repo.record(_decision())
     repo.record(_decision(price=450.0))

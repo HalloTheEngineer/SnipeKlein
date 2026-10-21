@@ -11,6 +11,7 @@ import re
 from dataclasses import dataclass, field
 
 from ..config import FilterConfig
+from ..filters.prefilter import is_modern_platform
 from ..models import Extraction, SearchCard
 from .model import ValuationEngine
 from .table import Component, PriceTable
@@ -27,6 +28,7 @@ class TriageResult:
     coarse_fmv: float = 0.0
     coarse_margin_pct: float = 0.0
     components: list[Component] = field(default_factory=list)
+    note: str = ""
 
 
 class Triage:
@@ -51,6 +53,19 @@ class Triage:
                 components.append(component)
 
         if len(components) < self.config.triage_min_components:
+            # The price table does not know this system yet.  If the title
+            # hints at a current generation platform it is still worth an
+            # extraction - the description is where the spec usually is.
+            if self.config.modern_platform_tier and is_modern_platform(text):
+                return TriageResult(
+                    passed=True,
+                    reason="triage_modern_tier",
+                    components=components,
+                    note=(
+                        "the price table does not know this system, the title hints at a "
+                        "current platform - the extraction decides"
+                    ),
+                )
             return TriageResult(
                 passed=False,
                 reason=f"triage_components:{len(components)}",

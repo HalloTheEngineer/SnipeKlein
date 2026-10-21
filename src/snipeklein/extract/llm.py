@@ -362,6 +362,7 @@ class ProviderFactory:
         if not self._providers:
             raise LlmError("no provider available")
         last_error: Exception | None = None
+        rate_limited = 0
         while self._index < len(self._providers):
             provider = self._providers[self._index]
             self.bucket.acquire()
@@ -377,8 +378,15 @@ class ProviderFactory:
                 self.quota_exhausted = True
                 raise
             except RateLimited as exc:
-                log.warning("rate limited on %s: %s", provider.model, exc)
+                # a per-minute limit clears on its own - retry a few times, then
+                # give up instead of looping forever
+                rate_limited += 1
+                log.warning(
+                    "rate limited on %s (attempt %s): %s", provider.model, rate_limited, exc
+                )
                 last_error = exc
+                if rate_limited >= self.config.max_attempts:
+                    break
                 continue
             except LlmError as exc:
                 log.warning("llm error on %s: %s", provider.model, exc)

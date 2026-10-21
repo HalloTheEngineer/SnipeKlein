@@ -58,6 +58,11 @@ required_ram_generation = "DDR5"
 triage_min_margin_pct = 15.0
 # Minimum number of recognized components for the triage stage.
 triage_min_components = 2
+# If the title hints at a current generation platform (RTX 40/50, AM5, Ryzen
+# 7000/9000, 12th gen+ Intel, "DDR5") but the price table does not know the
+# model, the ad still goes to the extraction: the description is where the
+# specification usually is.  Set to false to keep the LLM volume minimal.
+modern_platform_tier = true
 
 [storage]
 # Retention for the local database (pruned by `snipeklein prune` and by the
@@ -83,7 +88,7 @@ api_key_env = "GEMINI_API_KEY"
 thinking_level = "minimal"
 max_rpm = 6
 max_attempts = 4
-timeout_s = 45
+timeout_s = 30
 # Keep the system prompt + schema cached server-side (context caching).
 enable_context_cache = true
 

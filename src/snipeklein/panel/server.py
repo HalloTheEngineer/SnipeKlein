@@ -48,7 +48,8 @@ class PanelConfig:
 
 
 class PanelHandler(BaseHTTPRequestHandler):
-    server_version = "SnipeKleinPanel/1.0"
+    server_version = "SnipeKleinPanel"
+    sys_version = ""
     data: PanelData
     panel_config: PanelConfig
 
@@ -173,6 +174,9 @@ class PanelHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/health":
             self._json(self.data.health())
+            return
+        if path == "/api/watchdog":
+            self._json(self.data.watchdog())
             return
         self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 

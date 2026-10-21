@@ -229,7 +229,7 @@ class PriceHarvester:
         stored = self.repo.observations(component_id, days=self.observation_days)
         sample = stored or prices
         fmv, kept = self._robust_price(sample)
-        if fmv is None:
+        if fmv is None or kept < self.config.min_price_samples:
             log.info("no usable samples for %s (%s raw)", component_id, len(prices))
             return HarvestResult(component_id=component_id, samples=len(prices), fmv_eur=None)
         curated = self.curated.get(component_id)
