@@ -53,7 +53,14 @@ REASON_TEXTS = {
     "title_exclude": "the title marks it as a wanted ad, exchange or defective item",
     "spec_exclude": "an older platform marker (DDR3/4, AM4, LGA1200, GTX, ...)",
     "no_system_marker": "the title does not look like a complete system",
-    "no_component_marker": "the title does not mention a recognisable component",
+    "no_component_marker": (
+        "the title and the first line do not mention a component - the "
+        "specifications are probably in the description"
+    ),
+    "bundle": (
+        "a bundle (computer plus monitor and other accessories) - the asking "
+        "price includes the accessories, so it is never a good deal"
+    ),
     "empty_title": "the listing has no title",
     "triage_components": "fewer than two components could be recognised",
     "triage_margin": "not far enough below the market price",

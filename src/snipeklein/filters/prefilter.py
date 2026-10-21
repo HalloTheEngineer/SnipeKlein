@@ -88,6 +88,22 @@ MODERN_PLATFORM_PATTERNS = [
 ]
 
 
+# A bundle (a computer plus a monitor and other accessories) can never be a
+# good deal: the asking price includes the accessories while the FMV only
+# covers the computer itself.
+BUNDLE_PATTERNS = [
+    r"\bpc[-\s]?set\b",
+    r"\bkomplett[-\s]?set\b",
+    r"\bset\b[^.]{0,40}\b(monitor|maus|tastatur|stuhl|kopfhörer|webcam)",
+    r"\bpaket\b",
+    r"\bbundle\b",
+    r"inkl\.?\s*(2\s*)?monitor",
+    r"mit\s+(2\s*)?monitor",
+    r"\binklusive\b",
+    r"gaming[-\s]?pc\s*\+",
+]
+
+
 @dataclass(frozen=True)
 class PrefilterResult:
     passed: bool
@@ -110,6 +126,7 @@ _EXCLUDE_TITLE = _compile(EXCLUDE_TITLE_PATTERNS)
 _EXCLUDE_SPEC = _compile(EXCLUDE_SPEC_PATTERNS)
 _SYSTEM = _compile(SYSTEM_PATTERNS)
 _COMPONENT = _compile(COMPONENT_PATTERNS)
+_BUNDLE = _compile(BUNDLE_PATTERNS)
 _MODERN = _compile(MODERN_PLATFORM_PATTERNS)
 
 
@@ -137,6 +154,8 @@ def evaluate(text: str) -> PrefilterResult:
         return PrefilterResult.reject("no_system_marker")
 
     if not any(p.search(text) for p in _COMPONENT):
+        if any(p.search(text) for p in _BUNDLE):
+            return PrefilterResult.reject("bundle")
         return PrefilterResult.reject("no_component_marker")
 
     return PrefilterResult.accept()

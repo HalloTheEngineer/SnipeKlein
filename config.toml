@@ -27,7 +27,10 @@ proxy_url = ""
 tag = "pc-gaming-ddr5"
 category = "pcs"
 category_id = 228
-keywords = ["gaming pc", "gaming pc ddr5", "rtx 4070", "rtx 4080"]
+# "ddr5" is not a luxury keyword: the site indexes the description, so it
+# surfaces the DDR5 systems whose title only says "Gaming PC" - the generic
+# "gaming pc" search buries them (25 of 27 results are new).
+keywords = ["gaming pc", "gaming pc ddr5", "ddr5", "rtx 4070", "rtx 4080"]
 min_price = 300
 max_price = 1800
 max_pages = 1
@@ -36,7 +39,7 @@ max_pages = 1
 tag = "pc-complettsystem"
 category = "pcs"
 category_id = 228
-keywords = ["pc komplett", "komplett pc", "gaming pc komplett"]
+keywords = ["pc komplett", "komplett pc", "gaming pc komplett", "am5"]
 min_price = 300
 max_price = 2000
 max_pages = 1

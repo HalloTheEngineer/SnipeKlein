@@ -186,3 +186,12 @@ def test_the_base_model_is_counted(triage: Triage) -> None:
     labels = [c.label for c in result.components]
     assert "NVIDIA GeForce RTX 4070 12GB" in labels
     assert "NVIDIA GeForce RTX 4070 Ti" not in labels
+
+
+# -- the reason texts ------------------------------------------------------
+def test_the_rejection_reasons_explain_themselves() -> None:
+    """The panel must not say a listing is empty when it is not."""
+    from snipeklein.pipeline import _reason_text
+
+    assert "description" in _reason_text("no_component_marker")
+    assert "bundle" in _reason_text("bundle")

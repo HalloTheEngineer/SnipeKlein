@@ -127,6 +127,27 @@ within +/- 12 % of its FMV, so the 15-30 % window stayed empty. Lower
 `near_miss_margin_min_pct` to 5 if you want to see the borderline cases
 too.
 
+### What the bot looks for
+
+The queries are keyword based, and the site indexes the **description** - so
+the keyword `ddr5` surfaces the DDR5 systems whose title only says "Gaming PC"
+(the generic `gaming pc` search buries them: 25 of 27 `ddr5` results are new,
+the union of the two searches is 76 ads against 27). That is how a listing with
+a generic title still reaches the extraction.
+
+The first filter runs on the search card, so it only sees the title and the
+first line of the description. A listing that names no component there is
+rejected - with two distinct reasons:
+
+| reason | meaning |
+|---|---|
+| `no_component_marker` | the title and the first line do not mention a component - the specifications are probably in the description |
+| `bundle` | a computer plus monitor and other accessories: the asking price includes the accessories, so it is never a good deal |
+
+Measured on a sample of 20 generic-title listings: 9 were DDR4, 10 never
+mentioned their RAM, 1 was a DDR5 bundle - **none** would have become a deal,
+so the rejection costs nothing.
+
 ### The modern platform tier
 
 The price table only knows the components it was given, and a new chipset

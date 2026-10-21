@@ -37,3 +37,23 @@ def test_rejects_single_components() -> None:
 def test_reason_is_reported() -> None:
     result = evaluate("Suche RTX 4070")
     assert result.reason.startswith("title_exclude")
+
+
+# -- bundles ---------------------------------------------------------------
+def test_bundles_are_recognised() -> None:
+    """PC plus monitor and accessories can never be a good deal."""
+    for title in (
+        "Gaming PC Komplettset inklusive 2 Monitoren u. Tastatur",
+        "Komplett PC-Set mit Gaming Monitor 144 HZ, Tastatur, Maus, Stuhl",
+        "PC Komplettset",
+        "2 PC-Komplettsets mit Monitor – Windows 11 Pro + GRATIS Zubehör!",
+    ):
+        result = evaluate(title)
+        assert not result.passed
+        assert result.reason == "bundle", title
+
+
+def test_a_single_pc_is_not_a_bundle() -> None:
+    result = evaluate("Gaming PC / sehr gut erhalten")
+    assert not result.passed
+    assert result.reason == "no_component_marker"
