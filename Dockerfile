@@ -13,7 +13,10 @@ RUN apt-get update \
 
 COPY pyproject.toml README.md ./
 COPY src ./src
-COPY data ./data
+# Only the curated price table goes into the image - the runtime state
+# (database, backups, watchdog state) lives in the volume and must never be
+# baked in from the build host.
+COPY data/prices.json ./data/prices.json
 COPY data/prices.json ./prices.json
 COPY config.toml ./
 

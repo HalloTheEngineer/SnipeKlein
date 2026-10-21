@@ -14,6 +14,7 @@ from snipeklein.watchdog import (
     ACTION_PENDING,
     ACTION_RECOVERED,
     Watchdog,
+    WatchdogState,
 )
 
 
@@ -139,6 +140,18 @@ def test_recovery_notice(tmp_path: Path) -> None:
     # no further messages while everything is fine
     assert watchdog.tick() == ACTION_OK
     assert len(messages) == 2
+
+
+def test_no_recovery_message_for_a_stale_alarm(tmp_path: Path) -> None:
+    """A state file from an old deployment must not trigger a recovery note."""
+    clock = FakeClock()
+    messages: list[str] = []
+    watchdog = _watchdog(tmp_path, clock, _report("ok"), messages)
+    # pretend an alarm was raised two days ago
+    watchdog.state = WatchdogState(failures=3, alerting=True, last_alert=clock.wall - 2 * 86400)
+
+    assert watchdog.tick() == ACTION_RECOVERED
+    assert messages == []
 
 
 def test_state_survives_a_restart(tmp_path: Path) -> None:

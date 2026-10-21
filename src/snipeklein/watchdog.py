@@ -99,7 +99,12 @@ class Watchdog:
 
         if status == STATUS_OK:
             if self.state.alerting:
-                self.notify(self._recovery_message(report))
+                now = self.wall_clock()
+                # only report a recovery for an alarm that is still recent -
+                # a stale state file (e.g. from an older deployment) must not
+                # produce a bogus "back to normal" message
+                if now - self.state.last_alert <= self.cooldown:
+                    self.notify(self._recovery_message(report))
                 self.state = WatchdogState()
                 self._save_state()
                 return ACTION_RECOVERED

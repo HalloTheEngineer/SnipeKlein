@@ -16,6 +16,8 @@ data/*.db-*
 data/*.db-wal
 data/*.db-shm
 data/fixtures/
+data/backups/
+data/watchdog_state.json
 tests/
 tools/
 project_plan.md
