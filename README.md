@@ -92,12 +92,47 @@ Three services, all started by default:
 | `bot` | polls every 45–85 s, values candidates, sends Discord alerts (container healthcheck = `snipeklein health`) |
 | `price-refresher` | refreshes the FMV table every day at 03:00 (server local time) and writes a consistent backup afterwards |
 | `watchdog` | checks the bot every 5 minutes and posts to Discord if it is unhealthy |
+| `panel` | read-only web panel with the full decision trail (see below) |
 
 State lives in the named volume `snipeklein-data` (SQLite database + harvested
 prices). The curated component table is **not** in the volume: it is shipped
 with the image from `data/prices.json` and therefore updated with every
 deploy, while the harvested values live in the volume's database and are
 merged on top.
+
+### The decision panel
+
+Every ad the bot looks at is recorded with the decision it made and why - the
+listing was rejected by the title filter, it did not survive the triage, the
+RAM is not DDR5, the margin is not in the deal band, an alert was sent. The
+panel shows that trail.
+
+```bash
+snipeklein panel --port 8137          # http://127.0.0.1:8137
+```
+
+* **Read-only by construction**: the database is opened with the sqlite
+  `mode=ro` URI and `PRAGMA query_only`, the server only implements GET, and
+  every write endpoint answers `405`. Listing data is inserted into the page
+  with `textContent`, never as HTML.
+* **Authentication**: HTTP basic auth with `PANEL_USER` / `PANEL_PASSWORD`
+  from the environment. Binding to anything but `127.0.0.1` without them is
+  refused at startup.
+* **Data**: one row per ad in `ad_decisions` - the outcome, the stage that
+  decided it, the reason, the full step trail and the structured extraction /
+  valuation / risk data. The row is only rewritten when the decision or the
+  asking price changes, so the write volume stays tiny.
+* **Retention**: `decision_retention_days` (14) and a cap of
+  `max_decision_rows` (100 000), pruned by the bot's maintenance run and by
+  `snipeklein prune`.
+
+Endpoints: `/` (the UI), `/api/summary`, `/api/ads`, `/api/ads/<ad_id>`,
+`/api/alerts`, `/api/prices`, `/api/runs`, `/api/health`.
+
+On the VPS the panel is a compose service; give it a domain in Dokploy
+(service `panel`, port 8137) and set `PANEL_USER` / `PANEL_PASSWORD` in the
+environment. It shows seller names, locations and account ages, so keep it
+behind the credentials.
 
 ### Health and the watchdog
 
@@ -199,6 +234,8 @@ to a German residential proxy.
 | `snipeklein health` | configuration, database and quota state |
 | `snipeklein triage <ad_id\|url>` | explain the cheap triage decision |
 | `snipeklein extract` | smoke test the extraction against the live Gemini API |
+| `snipeklein panel [--port 8137]` | serve the read-only decision panel |
+| `snipeklein panel --check` | verify that the panel can read the database |
 | `snipeklein watchdog` | watch the bot and report problems to Discord (used by the watchdog container) |
 | `snipeklein backup` | write a consistent snapshot of the database and the price table |
 | `snipeklein test-alert [--dry-run]` | send a synthetic deal to the Discord webhook |

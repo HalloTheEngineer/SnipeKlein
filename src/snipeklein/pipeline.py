@@ -10,6 +10,7 @@ import random
 import sqlite3
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 from .config import Config
 from .extract.extractor import Extractor
@@ -22,6 +23,13 @@ from .ingestion.search_parser import parse_cards
 from .logging_setup import get_logger
 from .models import Band, Deal, SearchCard
 from .notify.discord import DiscordError, DiscordNotifier
+from .store.decisions import (
+    OUTCOME_ACCEPTED,
+    OUTCOME_ALERTED,
+    OUTCOME_REJECTED,
+    Decision,
+    DecisionRepo,
+)
 from .store.repo import (
     AlertRepo,
     ExtractionRepo,
@@ -38,6 +46,41 @@ from .valuation.table import PriceTable
 from .valuation.triage import Triage
 
 log = get_logger("snipeklein.pipeline")
+
+# Human readable texts for the machine codes of the filter stages.
+REASON_TEXTS = {
+    "title_exclude": "the title marks it as a wanted ad, exchange or defective item",
+    "spec_exclude": "an older platform marker (DDR3/4, AM4, LGA1200, GTX, ...)",
+    "no_system_marker": "the title does not look like a complete system",
+    "no_component_marker": "the title does not mention a recognisable component",
+    "empty_title": "the listing has no title",
+    "triage_components": "fewer than two components could be recognised",
+    "triage_margin": "not far enough below the market price",
+    "triage_no_price": "the card has no price",
+    "triage_no_value": "no component value could be derived",
+    "not_a_complete_system": "it is not a complete system",
+    "ram_generation": "the RAM is not DDR5",
+    "band": "the margin is not in the 30-55% deal band",
+    "coverage": "too much of the system is unknown",
+    "no_price": "the listing has no asking price",
+    "detail_fetch_failed": "the listing page could not be loaded",
+    "detail_parse_failed": "the listing page could not be parsed",
+    "alert_failed": "the alert could not be delivered",
+    "alerted": "an alert was sent to Discord",
+    "alert_skipped": "the alert was skipped",
+    "dry_run": "dry run - no alert was sent",
+}
+
+
+def _reason_text(code: str) -> str:
+    """Turn a machine reason code into a readable sentence."""
+    if not code:
+        return ""
+    head, _, tail = code.partition(":")
+    text = REASON_TEXTS.get(head, head.replace("_", " "))
+    if tail and head in ("triage_margin", "triage_components", "ram_generation"):
+        text = f"{text} ({tail})"
+    return text
 
 # Full database maintenance (listing/observation retention) every 6 hours.
 MAINTENANCE_INTERVAL_S = 6 * 3600
@@ -76,6 +119,7 @@ class Pipeline:
         self.prices = PriceRepo(conn)
         self.usage = UsageRepo(conn)
         self.filter_stats = FilterStatsRepo(conn)
+        self.decisions = DecisionRepo(conn)
 
         self.table = PriceTable.load(config.prices_path, self.prices.all_prices())
         self.engine = ValuationEngine(table=self.table, config=config.valuation)
@@ -125,6 +169,12 @@ class Pipeline:
             seen_ttl_days=self.config.seen_ttl_days,
             observation_days=self.config.observation_retention_days,
             listing_days=self.config.listing_retention_days,
+        )
+        removed.update(
+            self.decisions.prune(
+                retention_days=self.config.panel.decision_retention_days,
+                max_rows=self.config.panel.max_decision_rows,
+            )
         )
         total = sum(removed.values())
         if total:
@@ -180,17 +230,49 @@ class Pipeline:
         return selected
 
     def _process_card(self, card: SearchCard, result: CycleResult, dry_run: bool) -> None:
+        steps: list[dict[str, Any]] = []
+        detail: dict[str, Any] = {}
+
         pre = evaluate_prefilter(f"{card.title} {card.snippet}")
+        steps.append(
+            {"stage": "prefilter", "outcome": "passed" if pre.passed else "rejected"}
+        )
         if not pre.passed:
             result.reject(pre.reason)
+            self._record_decision(
+                card,
+                steps + [{"stage": "prefilter", "outcome": "rejected", "reason": pre.reason}],
+                outcome=OUTCOME_REJECTED,
+                stage="prefilter",
+                reason=_reason_text(pre.reason),
+                reason_code=pre.reason.split(":")[0],
+            )
             return
 
         if self.dedupe.seen(card.ad_id):
+            # already processed - the stored decision is still valid
             return
 
         triage = self.triage.evaluate(card)
+        steps.append(
+            {
+                "stage": "triage",
+                "outcome": "passed" if triage.passed else "rejected",
+                "reason": triage.reason if not triage.passed else "",
+                "coarse_fmv": round(triage.coarse_fmv, 2),
+                "coarse_margin_pct": round(triage.coarse_margin_pct, 1),
+            }
+        )
         if not triage.passed:
             result.reject(triage.reason)
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="triage",
+                reason=_reason_text(triage.reason),
+                reason_code=triage.reason.split(":")[0],
+            )
             return
 
         try:
@@ -198,6 +280,15 @@ class Pipeline:
         except Exception as exc:
             log.warning("detail fetch failed for %s: %s", card.ad_id, exc)
             result.errors += 1
+            steps.append({"stage": "detail", "outcome": "error", "reason": str(exc)[:200]})
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="detail",
+                reason=f"could not load the listing: {exc}"[:200],
+                reason_code="detail_fetch_failed",
+            )
             return
 
         try:
@@ -205,20 +296,74 @@ class Pipeline:
         except DetailParseError as exc:
             log.warning("detail parse failed for %s: %s", card.ad_id, exc)
             result.errors += 1
+            steps.append({"stage": "detail", "outcome": "error", "reason": str(exc)[:200]})
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="detail",
+                reason=f"could not parse the listing: {exc}"[:200],
+                reason_code="detail_parse_failed",
+            )
             return
 
         self.dedupe.mark(card.ad_id, card.query_tag)
         result.ads_new += 1
         self.listings.upsert(listing)
+        steps.append({"stage": "detail", "outcome": "passed"})
+        detail["listing"] = {
+            "price": listing.price,
+            "location": f"{listing.plz} {listing.city}".strip(),
+            "shipping": listing.shipping_mode.value,
+            "condition": listing.condition,
+            "seller": listing.seller_name,
+            "seller_since": listing.seller_since,
+            "seller_type": listing.seller_type,
+            "seller_badges": listing.seller_badges,
+            "description": listing.description[:2000],
+        }
 
         outcome = self.extractor.extract(listing.title, listing.description)
+        detail["extraction"] = outcome.extraction.model_dump()
+        detail["extraction_source"] = outcome.source
         if not outcome.ok:
+            steps.append(
+                {
+                    "stage": "extraction",
+                    "outcome": "rejected",
+                    "reason": outcome.rejected,
+                }
+            )
             result.reject(outcome.rejected or "extraction_rejected")
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="extraction",
+                reason=_reason_text(outcome.rejected),
+                reason_code=outcome.rejected.split(":")[0] if outcome.rejected else "extraction",
+                detail=detail,
+            )
             return
+        steps.append({"stage": "extraction", "outcome": "passed"})
 
         valuation = self.engine.value(outcome.extraction, listing)
         result.ads_evaluated += 1
         risk = self.risk_engine.assess(listing, outcome.extraction, valuation)
+        detail["valuation"] = valuation.model_dump()
+        detail["risk"] = risk.model_dump()
+        steps.append(
+            {
+                "stage": "valuation",
+                "outcome": "passed",
+                "band": valuation.band.value,
+                "margin_pct": round(valuation.margin_pct, 1),
+                "fmv_net": round(valuation.fmv_net, 2),
+                "coverage": round(valuation.coverage, 3),
+                "risk_score": risk.score,
+                "risk_level": risk.level.value,
+            }
+        )
 
         self.extractions.upsert(
             listing.ad_id,
@@ -232,12 +377,56 @@ class Pipeline:
 
         if valuation.band not in (Band.ACTIONABLE, Band.EXTREME):
             result.reject(f"band:{valuation.band.value}")
+            steps.append(
+                {
+                    "stage": "valuation",
+                    "outcome": "rejected",
+                    "reason": f"margin {valuation.margin_pct:.1f}% is no deal",
+                }
+            )
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="valuation",
+                reason=f"margin {valuation.margin_pct:.1f}% is not in the 30-55% deal band",
+                reason_code="band",
+                detail=detail,
+            )
             return
         if valuation.coverage < self.config.valuation.min_coverage:
             result.reject("coverage")
+            steps.append(
+                {
+                    "stage": "valuation",
+                    "outcome": "rejected",
+                    "reason": f"coverage {valuation.coverage:.0%} too low",
+                }
+            )
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="valuation",
+                reason=(
+                    f"only {valuation.coverage:.0%} of the system is known - "
+                    "too much is unknown"
+                ),
+                reason_code="coverage",
+                detail=detail,
+            )
             return
         if valuation.asking_price <= 0:
             result.reject("no_price")
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="valuation",
+                reason="the listing has no asking price",
+                reason_code="no_price",
+                detail=detail,
+            )
             return
 
         deal = Deal(listing=listing, extraction=outcome.extraction, valuation=valuation, risk=risk)
@@ -250,6 +439,20 @@ class Pipeline:
                 valuation.margin_pct,
                 risk.level.value,
             )
+            steps.append(
+                {"stage": "alert", "outcome": "skipped", "reason": "dry run"}
+            )
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_ACCEPTED,
+                stage="alert",
+                reason=(
+                    f"deal found: {valuation.margin_pct:.1f}% margin, risk {risk.level.value}"
+                ),
+                reason_code="dry_run",
+                detail=detail,
+            )
             return
 
         try:
@@ -257,6 +460,16 @@ class Pipeline:
         except DiscordError as exc:
             log.error("could not send alert for %s: %s", listing.ad_id, exc)
             result.errors += 1
+            steps.append({"stage": "alert", "outcome": "error", "reason": str(exc)[:200]})
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_ACCEPTED,
+                stage="alert",
+                reason=f"deal found, but the alert failed: {exc}"[:200],
+                reason_code="alert_failed",
+                detail=detail,
+            )
             return
         if sent:
             result.alerts_sent += 1
@@ -268,6 +481,53 @@ class Pipeline:
                 valuation.margin_pct,
                 risk.level.value,
             )
+        steps.append(
+            {"stage": "alert", "outcome": "sent" if sent else "skipped"}
+        )
+        self._record_decision(
+            card,
+            steps,
+            outcome=OUTCOME_ALERTED if sent else OUTCOME_ACCEPTED,
+            stage="alert",
+            reason=(
+                f"alert sent: {valuation.margin_pct:.1f}% margin, "
+                f"risk {risk.level.value}"
+            ),
+            reason_code="alerted" if sent else "alert_skipped",
+            detail=detail,
+        )
+
+    def _record_decision(
+        self,
+        card: SearchCard,
+        steps: list[dict[str, Any]],
+        outcome: str,
+        stage: str,
+        reason: str = "",
+        reason_code: str = "",
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        """Persist what the bot decided about this ad (write-on-change)."""
+        try:
+            self.decisions.record(
+                Decision(
+                    ad_id=card.ad_id,
+                    outcome=outcome,
+                    stage=stage,
+                    reason=reason,
+                    reason_code=reason_code,
+                    query_tag=card.query_tag,
+                    title=card.title,
+                    url=card.url,
+                    price=card.price,
+                    location=card.location_text,
+                    is_pro=card.is_pro,
+                    steps=steps,
+                    detail=detail or {},
+                )
+            )
+        except sqlite3.Error:  # pragma: no cover - never break the pipeline
+            log.exception("could not record the decision for %s", card.ad_id)
 
     # -- long running ------------------------------------------------------
     def poll_forever(self, query_tags: list[str] | None = None, dry_run: bool = False) -> None:

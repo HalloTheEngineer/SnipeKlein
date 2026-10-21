@@ -6,7 +6,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -22,6 +22,28 @@ CREATE TABLE IF NOT EXISTS seen_ads (
     status        TEXT DEFAULT 'new'
 );
 CREATE INDEX IF NOT EXISTS idx_seen_ads_last_seen ON seen_ads(last_seen_at);
+
+CREATE TABLE IF NOT EXISTS ad_decisions (
+    ad_id        TEXT PRIMARY KEY,
+    first_seen   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    query_tag    TEXT DEFAULT '',
+    title        TEXT DEFAULT '',
+    url          TEXT DEFAULT '',
+    price        REAL,
+    location     TEXT DEFAULT '',
+    is_pro       INTEGER DEFAULT 0,
+    outcome      TEXT NOT NULL,
+    stage        TEXT NOT NULL,
+    reason       TEXT DEFAULT '',
+    reason_code  TEXT DEFAULT '',
+    steps        TEXT DEFAULT '[]',
+    detail       TEXT DEFAULT '{}',
+    fingerprint  TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_decisions_updated ON ad_decisions(updated_at);
+CREATE INDEX IF NOT EXISTS idx_decisions_outcome ON ad_decisions(outcome);
+CREATE INDEX IF NOT EXISTS idx_decisions_stage ON ad_decisions(stage);
 
 CREATE TABLE IF NOT EXISTS listings (
     ad_id            TEXT PRIMARY KEY,

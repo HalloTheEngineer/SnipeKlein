@@ -53,6 +53,28 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  panel:
+    <<: *snipeklein
+    container_name: snipeklein-panel
+    # Read-only decision panel. Bind to 0.0.0.0 so Traefik/Dokploy can reach
+    # it; the service refuses to start without PANEL_USER/PANEL_PASSWORD.
+    command: ["panel", "--host", "0.0.0.0", "--port", "8137"]
+    environment:
+      TZ: Europe/Berlin
+      PANEL_USER: "${PANEL_USER:-}"
+      PANEL_PASSWORD: "${PANEL_PASSWORD:-}"
+    healthcheck:
+      test: ["CMD", "snipeklein", "panel", "--check"]
+      interval: 5m
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   price-refresher:
     <<: *snipeklein
     container_name: snipeklein-prices

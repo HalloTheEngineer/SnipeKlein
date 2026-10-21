@@ -45,6 +45,16 @@ class QueryConfig:
 
 
 @dataclass(frozen=True)
+class PanelConfigSettings:
+    """Settings of the read-only web panel."""
+
+    host: str = "127.0.0.1"
+    port: int = 8137
+    decision_retention_days: int = 14
+    max_decision_rows: int = 100_000
+
+
+@dataclass(frozen=True)
 class WatchdogConfig:
     """Policy of the failure watchdog (spec: quiet by default)."""
 
@@ -137,6 +147,7 @@ class Config:
     risk: RiskConfig = field(default_factory=RiskConfig)
     storage: StorageConfig = field(default_factory=StorageConfig)
     watchdog: WatchdogConfig = field(default_factory=WatchdogConfig)
+    panel: PanelConfigSettings = field(default_factory=PanelConfigSettings)
     queries: list[QueryConfig] = field(default_factory=list)
     path: Path = DEFAULT_CONFIG_PATH
 
@@ -227,6 +238,7 @@ def load_config(
         risk=_build(RiskConfig, _section(raw, "risk")),
         storage=_build(StorageConfig, _section(raw, "storage")),
         watchdog=_build(WatchdogConfig, _section(raw, "watchdog")),
+        panel=_build(PanelConfigSettings, _section(raw, "panel")),
         queries=queries,
         path=cfg_path,
     )

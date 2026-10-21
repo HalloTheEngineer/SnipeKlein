@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snipeklein"
-version = "0.1.1"
+version = "0.2.0"
 description = "Kleinanzeigen Deal Sniper: monitors German classifieds for undervalued custom gaming PCs and dispatches deal alerts to Discord."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -32,7 +32,7 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-snipeklein = ["py.typed"]
+snipeklein = ["py.typed", "panel/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

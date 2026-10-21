@@ -432,6 +432,23 @@ def cmd_watchdog(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_panel(args: argparse.Namespace) -> int:
+    """Serve the read-only decision panel."""
+    from .panel.server import check, panel_config_from_env, serve
+
+    config = _config(args)
+    if args.check:
+        return check(config)
+    panel_config = panel_config_from_env(config, host=args.host, port=args.port)
+    try:
+        serve(config, panel_config)
+    except KeyboardInterrupt:
+        return 0
+    except SystemExit:
+        raise
+    return 0
+
+
 def cmd_backup(args: argparse.Namespace) -> int:
     """Write a consistent snapshot of the database and the price table."""
     config = _config(args)
@@ -642,6 +659,7 @@ def cmd_prune(args: argparse.Namespace) -> int:
     config = _config(args)
     conn = _db(config)
     try:
+        from .store.decisions import DecisionRepo
         from .store.repo import MaintenanceRepo, SeenStore
 
         removed = SeenStore(conn).purge(config.seen_ttl_days)
@@ -654,6 +672,13 @@ def cmd_prune(args: argparse.Namespace) -> int:
         for table, count in stats.items():
             if count:
                 print(f"removed {count} rows from {table}")
+        decisions = DecisionRepo(conn).prune(
+            retention_days=config.panel.decision_retention_days,
+            max_rows=config.panel.max_decision_rows,
+        )
+        for table, count in decisions.items():
+            if count:
+                print(f"removed {count} decision rows ({table})")
         return 0
     finally:
         conn.close()
@@ -775,6 +800,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--cooldown", type=int, default=None, help="seconds between repeated alarms (config: 21600)"
     )
     watchdog.set_defaults(func=cmd_watchdog)
+
+    panel = sub.add_parser("panel", help="serve the read-only decision panel")
+    panel.add_argument("--host", default="", help="interface to bind (default 127.0.0.1)")
+    panel.add_argument("--port", type=int, default=0, help="port to listen on (default 8137)")
+    panel.add_argument(
+        "--check", action="store_true", help="only verify the database and exit"
+    )
+    panel.set_defaults(func=cmd_panel)
 
     backup = sub.add_parser("backup", help="write a consistent snapshot of the state")
     backup.add_argument("--keep", type=int, default=14, help="number of backups to keep")

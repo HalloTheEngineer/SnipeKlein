@@ -93,6 +93,15 @@ username = "SnipeKlein"
 # Re-send an alert when the computed payload changed (e.g. refreshed FMV table).
 repeat_on_change = false
 
+[panel]
+# Read-only web panel. The credentials come from the environment
+# (PANEL_USER / PANEL_PASSWORD), never from this file.
+host = "127.0.0.1"
+port = 8137
+# How long the decision trail is kept.
+decision_retention_days = 14
+max_decision_rows = 100000
+
 [watchdog]
 # Failure watchdog: how often the bot is checked and when Discord is told.
 # The grace period covers the first (slow) poll cycle, so a fresh deployment
