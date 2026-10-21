@@ -114,3 +114,12 @@ def test_prune_removes_old_rows(repo: DecisionRepo) -> None:
     removed = repo.prune(retention_days=14)
     assert removed["expired"] == 1
     assert repo.counts()["total"] == 0
+
+
+def test_the_effective_price_and_the_card_price_are_kept_apart(repo: DecisionRepo) -> None:
+    """The price the decision used must not be confused with the search index."""
+    repo.record(_decision("1", price=1649.0, card_price=7.0))
+    stored = repo.get("1")
+    assert stored is not None
+    assert stored["price"] == 1649.0
+    assert stored["card_price"] == 7.0

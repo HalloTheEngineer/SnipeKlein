@@ -7,7 +7,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS ad_decisions (
     title        TEXT DEFAULT '',
     url          TEXT DEFAULT '',
     price        REAL,
+    card_price   REAL,
     location     TEXT DEFAULT '',
     snippet      TEXT DEFAULT '',
     is_pro       INTEGER DEFAULT 0,
@@ -179,6 +180,7 @@ def connect(db_path: str | Path) -> sqlite3.Connection:
 # Statements that upgrade an existing database to a newer schema version.
 MIGRATIONS: list[tuple[int, list[str]]] = [
     (3, ["ALTER TABLE ad_decisions ADD COLUMN snippet TEXT DEFAULT ''"]),
+    (4, ["ALTER TABLE ad_decisions ADD COLUMN card_price REAL"]),
 ]
 
 

@@ -365,6 +365,7 @@ class Pipeline:
                 reason=reason,
                 reason_code=code,
                 detail=detail,
+                price=listing.price,
             )
             return
         steps.append({"stage": "extraction", "outcome": "passed"})
@@ -415,6 +416,7 @@ class Pipeline:
                 reason=f"margin {valuation.margin_pct:.1f}% is not in the 30-55% deal band",
                 reason_code="band",
                 detail=detail,
+                price=listing.price,
             )
             return
         if valuation.coverage < self.config.valuation.min_coverage:
@@ -437,6 +439,7 @@ class Pipeline:
                 ),
                 reason_code="coverage",
                 detail=detail,
+                price=listing.price,
             )
             return
         if valuation.asking_price <= 0:
@@ -449,6 +452,7 @@ class Pipeline:
                 reason="the listing has no asking price",
                 reason_code="no_price",
                 detail=detail,
+                price=listing.price,
             )
             return
 
@@ -488,6 +492,7 @@ class Pipeline:
                 ),
                 reason_code="near_miss" if is_near_miss else "dry_run",
                 detail=detail,
+                price=listing.price,
             )
             return
 
@@ -505,6 +510,7 @@ class Pipeline:
                 reason=f"deal found, but the alert failed: {exc}"[:200],
                 reason_code="alert_failed",
                 detail=detail,
+                price=listing.price,
             )
             return
         if sent:
@@ -553,8 +559,15 @@ class Pipeline:
         reason: str = "",
         reason_code: str = "",
         detail: dict[str, Any] | None = None,
+        price: float | None = None,
     ) -> None:
-        """Persist what the bot decided about this ad (write-on-change)."""
+        """Persist what the bot decided about this ad (write-on-change).
+
+        ``price`` is the asking price the decision was based on.  Once the
+        detail page was read, that is the seller's current price - the search
+        card can be stale (a cached index).  The card price is kept
+        separately.
+        """
         try:
             self.decisions.record(
                 Decision(
@@ -566,7 +579,8 @@ class Pipeline:
                     query_tag=card.query_tag,
                     title=card.title,
                     url=card.url,
-                    price=card.price,
+                    price=card.price if price is None else price,
+                    card_price=card.price,
                     location=card.location_text,
                     snippet=card.snippet[:400],
                     is_pro=card.is_pro,

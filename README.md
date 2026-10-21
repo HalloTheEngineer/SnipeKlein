@@ -194,6 +194,10 @@ snipeklein panel --port 8137          # http://127.0.0.1:8137
   decided it, the reason, the full step trail and the structured extraction /
   valuation / risk data. The row is only rewritten when the decision or the
   asking price changes, so the write volume stays tiny.
+* **Prices**: the stored price is the one the decision was based on - the
+  seller's current asking price from the detail page. The price in the search
+  index can be stale (a cached page), so it is kept separately as
+  `card_price` and shown next to it when the two differ.
 * **Retention**: `decision_retention_days` (14) and a cap of
   `max_decision_rows` (100 000), pruned by the bot's maintenance run and by
   `snipeklein prune`.

@@ -110,7 +110,13 @@ function renderRows(payload) {
     titleCell.appendChild(el("div", "muted mono", ad.ad_id + (ad.location ? " · " + ad.location : "")));
     tr.appendChild(titleCell);
 
-    tr.appendChild(el("td", "num", fmtEur(ad.price)));
+    const priceCell = el("td", "num");
+    priceCell.appendChild(document.createTextNode(fmtEur(ad.price)));
+    if (ad.card_price !== null && ad.card_price !== undefined &&
+        Math.abs(ad.card_price - (ad.price || 0)) > 0.5) {
+      priceCell.appendChild(el("div", "muted", "card: " + fmtEur(ad.card_price)));
+    }
+    tr.appendChild(priceCell);
 
     const outcomeCell = el("td");
     outcomeCell.appendChild(outcomeBadge(ad.outcome, valuation.band));

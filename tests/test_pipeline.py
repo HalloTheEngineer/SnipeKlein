@@ -153,3 +153,28 @@ def test_pipeline_persists_listing_and_extraction(pipeline: Pipeline) -> None:
 def test_pipeline_does_not_send_alerts_in_dry_run(pipeline: Pipeline) -> None:
     result = pipeline.run_cycle(dry_run=True)
     assert result.alerts_sent == 0
+
+
+def test_the_decision_uses_the_detail_price_not_the_card_price(pipeline: Pipeline) -> None:
+    """A stale search card price must not end up next to the valuation."""
+    from snipeklein.models import SearchCard
+    from snipeklein.pipeline import CycleResult
+    from snipeklein.store.decisions import DecisionRepo
+
+    card = SearchCard(
+        ad_id=AD_ID,
+        url=f"https://example.invalid/s-anzeige/gaming-pc/{AD_ID}-228-1",
+        title="Gaming PC Ryzen 7 7800X3D RTX 4070 32GB DDR5 1TB NVMe",
+        price=7.0,
+        location_text="12345 Teststadt",
+        query_tag="test",
+    )
+    result = CycleResult()
+    pipeline._process_card(card, result, dry_run=True)  # noqa: SLF001
+
+    decision = DecisionRepo(pipeline.conn).get(AD_ID)
+    assert decision is not None
+    # the detail page said 700 EUR - that is the price the decision used
+    assert decision["price"] == 700.0
+    # the search index said 7 EUR - kept separately
+    assert decision["card_price"] == 7.0

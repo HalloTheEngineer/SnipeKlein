@@ -33,6 +33,8 @@ class Decision:
     title: str = ""
     url: str = ""
     price: float | None = None
+    # the price the search card showed - it can be stale
+    card_price: float | None = None
     location: str = ""
     snippet: str = ""
     is_pro: bool = False
@@ -55,6 +57,7 @@ class Decision:
                 "price": self.price,
                 "location": self.location,
                 "snippet": self.snippet,
+                "card_price": self.card_price,
                 "steps": self.steps,
                 "detail": self.detail,
             },
@@ -78,10 +81,10 @@ class DecisionRepo:
         cur = self.conn.execute(
             """
             INSERT INTO ad_decisions (
-                ad_id, first_seen, updated_at, query_tag, title, url, price, location,
-                snippet, is_pro, outcome, stage, reason, reason_code, steps, detail,
-                fingerprint
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ad_id, first_seen, updated_at, query_tag, title, url, price, card_price,
+                location, snippet, is_pro, outcome, stage, reason, reason_code, steps,
+                detail, fingerprint
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(ad_id) DO UPDATE SET
                 updated_at  = excluded.updated_at,
                 query_tag   = excluded.query_tag,
@@ -107,6 +110,7 @@ class DecisionRepo:
                 decision.title,
                 decision.url,
                 decision.price,
+                decision.card_price,
                 decision.location,
                 decision.snippet,
                 int(decision.is_pro),
