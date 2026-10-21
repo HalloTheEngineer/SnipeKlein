@@ -35,6 +35,10 @@ def open_readonly(db_path: str | Path) -> sqlite3.Connection:
         return conn
 
 
+class DatabaseNotReady(RuntimeError):
+    """The bot has not written the database yet."""
+
+
 class PanelData:
     """All data the panel can show.
 
@@ -45,14 +49,15 @@ class PanelData:
     def __init__(self, config: Config) -> None:
         self.config = config
         self._local = threading.local()
-        # fail fast if the database is missing
-        if not Path(config.db_path).exists():
-            raise FileNotFoundError(f"no database at {config.db_path}")
 
     @property
     def conn(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)
         if conn is None:
+            if not Path(self.config.db_path).exists():
+                raise DatabaseNotReady(
+                    f"no database at {self.config.db_path} - the bot has to run first"
+                )
             conn = open_readonly(self.config.db_path)
             self._local.conn = conn
         return conn

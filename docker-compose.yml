@@ -56,8 +56,11 @@ services:
   panel:
     <<: *snipeklein
     container_name: snipeklein-panel
-    # Read-only decision panel. Bind to 0.0.0.0 so Traefik/Dokploy can reach
-    # it; the service refuses to start without PANEL_USER/PANEL_PASSWORD.
+    # Read-only decision panel. The port is only exposed inside the compose
+    # network (no host publishing), so it is reachable by a reverse proxy or
+    # another service - never directly from the internet.
+    expose:
+      - "8137"
     command: ["panel", "--host", "0.0.0.0", "--port", "8137"]
     environment:
       TZ: Europe/Berlin

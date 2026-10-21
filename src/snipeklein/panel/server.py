@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlparse
 
 from ..config import Config
 from ..logging_setup import get_logger
-from .api import PanelData
+from .api import DatabaseNotReady, PanelData
 
 log = get_logger("snipeklein.panel")
 
@@ -105,6 +105,8 @@ class PanelHandler(BaseHTTPRequestHandler):
         query = {k: v[0] for k, v in parse_qs(parsed.query).items()}
         try:
             self._route(path, query)
+        except DatabaseNotReady as exc:
+            self._json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
         except Exception:
             log.exception("panel request failed: %s", self.path)
             self._json({"error": "internal error"}, HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -185,14 +187,10 @@ def _int(value: str | None, default: int, minimum: int, maximum: int) -> int:
 
 def check(config: Config) -> int:
     """Verify that the panel can read the database (used as healthcheck)."""
-    try:
-        data = PanelData(config)
-    except FileNotFoundError as exc:
-        print(f"panel check failed: {exc}")
-        return 1
+    data = PanelData(config)
     try:
         summary = data.summary()
-    except sqlite3.Error as exc:
+    except (DatabaseNotReady, sqlite3.Error) as exc:
         print(f"panel check failed: {exc}")
         return 1
     finally:
@@ -210,10 +208,12 @@ def serve(config: Config, panel_config: PanelConfig) -> None:
         raise SystemExit(
             "refusing to bind to a public interface without PANEL_USER/PANEL_PASSWORD"
         )
-    try:
-        data = PanelData(config)
-    except FileNotFoundError as exc:
-        raise SystemExit(f"cannot open the database: {exc}") from exc
+    data = PanelData(config)
+    if not Path(config.db_path).exists():
+        log.warning(
+            "no database at %s yet - the panel waits for the bot to create it",
+            config.db_path,
+        )
     data = PanelData(config)
     handler = type(
         "BoundPanelHandler",
