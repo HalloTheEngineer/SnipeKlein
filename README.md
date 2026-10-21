@@ -325,7 +325,14 @@ refresh them:
 
 ```bash
 .venv/bin/python tools/capture_fixtures.py
+.venv/bin/python tools/sanitize_fixtures.py     # redact the personal data
 ```
+
+The fixtures are real kleinanzeigen.de pages, so `tools/sanitize_fixtures.py`
+replaces every identifying value (seller name, user id, registration date,
+postal code, city, e-mail, shop slug) with a neutral placeholder and keeps
+ids, titles, prices and the page structure intact. Run it after every
+capture - `--check` only reports whether anything is left.
 
 ---
 
