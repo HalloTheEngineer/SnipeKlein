@@ -1219,6 +1219,130 @@
       "market_source": "kleinanzeigen",
       "market_samples": 7,
       "market_observed": "2026-10-21"
+    },
+    {
+      "id": "ACCESSORY_MONITOR_24",
+      "kind": "accessory",
+      "label": "24 Zoll Monitor",
+      "fmv_eur": 150,
+      "aliases": [
+        "24 zoll monitor",
+        "24 zoll",
+        "monitor 24 zoll"
+      ]
+    },
+    {
+      "id": "ACCESSORY_MONITOR_27",
+      "kind": "accessory",
+      "label": "27 Zoll Monitor",
+      "fmv_eur": 180,
+      "aliases": [
+        "27 zoll monitor",
+        "27 zoll",
+        "monitor 27 zoll"
+      ]
+    },
+    {
+      "id": "ACCESSORY_MONITOR_32",
+      "kind": "accessory",
+      "label": "32 Zoll Monitor",
+      "fmv_eur": 250,
+      "aliases": [
+        "32 zoll monitor",
+        "32 zoll",
+        "monitor 32 zoll"
+      ]
+    },
+    {
+      "id": "ACCESSORY_MONITOR_34",
+      "kind": "accessory",
+      "label": "34 Zoll Monitor (Ultrawide)",
+      "fmv_eur": 300,
+      "aliases": [
+        "34 zoll monitor",
+        "34 zoll",
+        "ultrawide monitor",
+        "monitor 34 zoll"
+      ]
+    },
+    {
+      "id": "ACCESSORY_KEYBOARD_MOUSE",
+      "kind": "accessory",
+      "label": "Tastatur und Maus",
+      "fmv_eur": 50,
+      "aliases": [
+        "tastatur und maus",
+        "tastatur + maus",
+        "tastatur und gaming maus",
+        "maus und tastatur"
+      ]
+    },
+    {
+      "id": "ACCESSORY_CHAIR",
+      "kind": "accessory",
+      "label": "Buerostuhl / Gaming Chair",
+      "fmv_eur": 100,
+      "aliases": [
+        "buerostuhl",
+        "gaming chair",
+        "gamingstuhl",
+        "stuhl",
+        "schreibtischstuhl"
+      ]
+    },
+    {
+      "id": "ACCESSORY_HEADSET",
+      "kind": "accessory",
+      "label": "Gaming Headset",
+      "fmv_eur": 35,
+      "aliases": [
+        "headset",
+        "gaming headset",
+        "kopfhoerer"
+      ]
+    },
+    {
+      "id": "ACCESSORY_WEBCAM",
+      "kind": "accessory",
+      "label": "Webcam",
+      "fmv_eur": 30,
+      "aliases": [
+        "webcam",
+        "web cam"
+      ]
+    },
+    {
+      "id": "ACCESSORY_SPEAKERS",
+      "kind": "accessory",
+      "label": "Lautsprecher",
+      "fmv_eur": 50,
+      "aliases": [
+        "lautsprecher",
+        "speaker",
+        "boxen"
+      ]
+    },
+    {
+      "id": "ACCESSORY_CAMERA",
+      "kind": "accessory",
+      "label": "Kamera / Camcorder",
+      "fmv_eur": 150,
+      "aliases": [
+        "kamera",
+        "camcorder",
+        "videokamera"
+      ]
+    },
+    {
+      "id": "ACCESSORY_MIC",
+      "kind": "accessory",
+      "label": "Mikrofon",
+      "fmv_eur": 60,
+      "aliases": [
+        "mikrofon",
+        "microphone",
+        "stream mikrofon"
+      ]
     }
   ],
   "defect_costs": {

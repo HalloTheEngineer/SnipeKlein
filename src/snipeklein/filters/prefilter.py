@@ -137,6 +137,27 @@ def is_modern_platform(text: str) -> bool:
     return any(pattern.search(text) for pattern in _MODERN)
 
 
+def is_bundle(text: str) -> bool:
+    """A computer plus monitor and other accessories."""
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _BUNDLE)
+
+
+def is_system(text: str) -> bool:
+    """Does the text look like a complete computer?"""
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _SYSTEM)
+
+
+def is_wanted(text: str) -> bool:
+    """A wanted ad, an exchange or a defective item."""
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _EXCLUDE_TITLE)
+
+
 def evaluate(text: str) -> PrefilterResult:
     """Apply the tier-1 rules to a title (or title + snippet)."""
     if not text or not text.strip():
@@ -150,11 +171,11 @@ def evaluate(text: str) -> PrefilterResult:
         if pattern.search(text):
             return PrefilterResult.reject(f"spec_exclude:{pattern.pattern}")
 
-    if not any(p.search(text) for p in _SYSTEM):
+    if not is_system(text):
         return PrefilterResult.reject("no_system_marker")
 
     if not any(p.search(text) for p in _COMPONENT):
-        if any(p.search(text) for p in _BUNDLE):
+        if is_bundle(text):
             return PrefilterResult.reject("bundle")
         return PrefilterResult.reject("no_component_marker")
 

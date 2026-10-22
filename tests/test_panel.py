@@ -261,3 +261,15 @@ def test_price_detail_has_distribution_trend_and_samples(config: Config) -> None
         assert data.price_detail("DOES_NOT_EXIST") is None
     finally:
         data.close()
+
+
+def test_prices_endpoint_has_the_market_distribution(config: Config) -> None:
+    """The price view exposes the market distribution of a configuration."""
+    data = PanelData(config)
+    try:
+        rows = data.prices()
+        assert rows
+        for key in ("fmv_eur", "curated_eur", "source", "sample_n", "aliases"):
+            assert key in rows[0]
+    finally:
+        data.close()

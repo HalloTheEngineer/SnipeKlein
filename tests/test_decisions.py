@@ -158,7 +158,7 @@ def test_the_v4_migration_backfills_the_price(tmp_path: Path) -> None:
     conn = sqlite3.connect(db_path)
     try:
         migrate(conn)
-        assert schema_version(conn) == 4
+        assert schema_version(conn) >= 4
         row = conn.execute(
             "SELECT price, card_price FROM ad_decisions WHERE ad_id = '1'"
         ).fetchone()

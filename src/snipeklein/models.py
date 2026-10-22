@@ -97,6 +97,8 @@ class Extraction(BaseModel):
     operating_system_included: bool = False
     defects_or_missing_parts: list[str] = Field(default_factory=list)
     pickup_only: bool = False
+    # optional: the accessories a bundle includes ("24 Zoll Monitor", ...)
+    accessories: list[str] = Field(default_factory=list)
 
 
 class ComponentValue(BaseModel):
@@ -119,6 +121,16 @@ class Valuation(BaseModel):
 
     fmv_gross: float = 0.0
     fmv_net: float = 0.0
+    # the value of a complete system with the named parts (the unnamed parts
+    # are assumed to be present and worth their median)
+    fmv_estimate: float = 0.0
+    # the calibrated multiple of the parts' sum that the market asks for
+    assembly_factor: float = 1.0
+    assembly_samples: int = 0
+    # the market value of the accessories a bundle includes
+    accessories_eur: float = 0.0
+    # where the asking price sits in the market distribution (0-100 %)
+    price_rank: float | None = None
     asking_price: float = 0.0
     margin_eur: float = 0.0
     margin_pct: float = 0.0

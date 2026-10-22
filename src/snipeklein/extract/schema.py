@@ -49,6 +49,14 @@ EXTRACTION_SCHEMA: dict[str, Any] = {
             "type": "boolean",
             "description": "true if the seller only offers pickup ('Nur Abholung').",
         },
+        "accessories": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": (
+                "Accessories that are included in the price, e.g. '24 Zoll Monitor', "
+                "'Tastatur und Maus', 'Buerostuhl'. Empty if the ad is just the computer."
+            ),
+        },
     },
     "required": [
         "is_complete_system",
@@ -62,6 +70,7 @@ EXTRACTION_SCHEMA: dict[str, Any] = {
         "operating_system_included",
         "defects_or_missing_parts",
         "pickup_only",
+        "accessories",
     ],
 }
 
@@ -75,7 +84,8 @@ Regeln:
 - is_complete_system = true nur, wenn ein vollstaendiger, einsatzbereiter \
 Computer verkauft wird (keine Einzelkomponente, kein Wunschgesuch).
 - ram_generation: DDR5, DDR4 oder UNKNOWN. Nur ausdruecklich genannte \
-RAM-Angaben zaehlen.
+RAM-Angaben zaehlen. Wenn die Anzeige die RAM-Generation nicht nennt, \
+immer UNKNOWN - niemals aus dem verbauten Board oder Prozessor ableiten.
 - ram_capacity_gb / storage_capacity_gb: Zahlen in GB ohne Einheit. \
 "1 TB" = 1024 GB, "2 TB" = 2048 GB.
 - psu_wattage: nur wenn eine Wattzahl genannt wird (z.B. "750W").
@@ -83,6 +93,9 @@ RAM-Angaben zaehlen.
 "Netzteil defekt", "kein RAM dabei", "kein Betriebssystem". Leere Liste, \
 wenn nichts auffaellig ist.
 - pickup_only: true bei "Nur Abholung" / "Nur Selbstabholung".
+- accessories: nur das auffuehren, was im Preis enthalten ist (Monitor, Tastatur,
+  Maus, Stuhl, Kopfhoerer, Lautsprecher, Webcam, Kamera). Leere Liste, wenn nur
+  der Computer verkauft wird.
 - Antworte ausschliesslich mit einem JSON-Objekt, das dem vorgegebenen Schema \
 entspricht.
 """

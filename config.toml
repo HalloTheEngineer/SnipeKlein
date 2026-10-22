@@ -74,15 +74,21 @@ observation_retention_days = 30
 listing_retention_days = 30
 
 [valuation]
-bundle_discount = 0.12
 min_coverage = 0.75
-actionable_margin_min_pct = 30.0
-actionable_margin_max_pct = 55.0
-extreme_margin_pct = 60.0
-# Listings with a margin between this value and the actionable band are
-# reported as a "near miss" (blue, clearly not a deal).
-near_miss_margin_min_pct = 15.0
+# A fair price is within ~10 % of the sum of a system's parts (measured on the
+# used market), so the bands follow that spread.
+actionable_margin_min_pct = 12.0
+actionable_margin_max_pct = 30.0
+extreme_margin_pct = 30.0
+# Listings between this margin and the actionable band are reported as a
+# "near miss" (blue, clearly not a deal).
+near_miss_margin_min_pct = 5.0
 near_miss_alerts = true
+# The market asks a multiple of the sum of a system's parts.  It is calibrated
+# from the observed system market (prices market), not guessed.
+assembly_fallback = 1.0
+assembly_min_samples = 8
+assembly_window_days = 14
 asking_to_sold_factor = 0.92
 min_price_samples = 5
 

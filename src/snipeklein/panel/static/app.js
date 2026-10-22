@@ -50,8 +50,13 @@ function fmtEur(value) {
   return Number(value).toLocaleString("de-DE", { maximumFractionDigits: 0 }) + " €";
 }
 
+function valuationOf(ad) {
+  return (ad.detail || {}).valuation || null;
+}
+
 function outcomeBadge(outcome, band) {
   if (outcome === "near_miss") return el("span", "badge b-nearmiss", "near miss");
+  if (outcome === "not_target") return el("span", "badge b-estimate", "not a DDR5 target");
   if (outcome === "alerted") return el("span", "badge b-alerted", "alerted");
   if (outcome === "accepted") return el("span", "badge b-accepted", "accepted");
   if (band === "extreme") return el("span", "badge b-extreme", "rejected · extreme");
@@ -126,7 +131,13 @@ function renderRows(payload) {
     stageCell.appendChild(el("span", "badge b-stage", ad.stage));
     tr.appendChild(stageCell);
 
-    tr.appendChild(el("td", "muted", ad.reason || "-"));
+    const reasonCell = el("td", "muted");
+    reasonCell.appendChild(document.createTextNode(ad.reason || "-"));
+    const rank = valuationOf(ad) && valuationOf(ad).price_rank;
+    if (rank !== null && rank !== undefined) {
+      reasonCell.appendChild(el("div", "muted", "price rank p" + Math.round(rank)));
+    }
+    tr.appendChild(reasonCell);
     tr.appendChild(el("td", "muted", fmtTime(ad.updated_at)));
 
     tr.addEventListener("click", () => openAd(ad.ad_id));
@@ -210,6 +221,7 @@ function openAd(adId) {
       kv(list, "os included", extraction.operating_system_included);
       kv(list, "defects", (extraction.defects_or_missing_parts || []).join(", "));
       kv(list, "pickup only", extraction.pickup_only);
+      kv(list, "accessories", (extraction.accessories || []).join(", "));
       kv(list, "source", detail.extraction_source);
       drawer.appendChild(list);
     }

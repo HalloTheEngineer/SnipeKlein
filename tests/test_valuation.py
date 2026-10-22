@@ -115,8 +115,9 @@ def test_valuation_of_a_ddr5_gaming_pc(engine: ValuationEngine) -> None:
         + engine.table.get("PERIPHERAL_BUNDLE_GENERIC").fmv_eur
     )
     assert valuation.fmv_gross == pytest.approx(expected_gross, rel=0.01)
-    # AM5 platform bonus: 3 % of gross -> net = (gross + 3 %) * 0.88
-    expected_net = (expected_gross + expected_gross * 0.03) * 0.88
+    # AM5 platform bonus: 3 % of gross, then the assembly factor (1.0 until
+    # the system market has been measured)
+    expected_net = (expected_gross + expected_gross * 0.03) * 1.0
     assert valuation.fmv_net == pytest.approx(expected_net, rel=0.01)
     assert valuation.margin_pct == pytest.approx(
         (expected_net - 900.0) / expected_net * 100, rel=0.01
@@ -139,8 +140,8 @@ def test_valuation_flags_a_real_deal(engine: ValuationEngine) -> None:
     )
     # the price is derived from the table, so the test survives a price update
     fair = engine.value(extraction, _listing(price=1000.0))
-    valuation = engine.value(extraction, _listing(price=fair.fmv_net * 0.5))
-    assert valuation.margin_pct == pytest.approx(50.0, abs=1.0)
+    valuation = engine.value(extraction, _listing(price=fair.fmv_net * 0.8))
+    assert valuation.margin_pct == pytest.approx(20.0, abs=1.0)
     assert valuation.band is Band.ACTIONABLE
 
 

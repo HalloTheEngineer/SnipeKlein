@@ -44,7 +44,7 @@ class Triage:
         components: list[Component] = []
         seen: set[str] = set()
         for component in self.table.components:
-            if component.kind == "peripheral":
+            if component.kind in ("peripheral", "accessory"):
                 continue
             if not component.patterns:
                 continue

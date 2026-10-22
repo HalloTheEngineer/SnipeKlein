@@ -66,10 +66,12 @@ def _band_at(engine: ValuationEngine, margin_pct: float) -> Band:
 
 
 def test_bands(engine: ValuationEngine) -> None:
-    assert _band_at(engine, 5.0) is Band.NOT_A_DEAL
-    assert _band_at(engine, 20.0) is Band.NEAR_MISS
-    assert _band_at(engine, 40.0) is Band.ACTIONABLE
-    assert _band_at(engine, 65.0) is Band.EXTREME
+    # a fair price is within ~10 % of the parts' sum, so the bands are
+    # calibrated to that spread
+    assert _band_at(engine, 2.0) is Band.NOT_A_DEAL
+    assert _band_at(engine, 8.0) is Band.NEAR_MISS
+    assert _band_at(engine, 20.0) is Band.ACTIONABLE
+    assert _band_at(engine, 35.0) is Band.EXTREME
 
 
 def test_near_miss_can_be_switched_off(table: PriceTable) -> None:
@@ -77,7 +79,7 @@ def test_near_miss_can_be_switched_off(table: PriceTable) -> None:
         table=table,
         config=ValuationConfig(near_miss_alerts=False),
     )
-    assert _band_at(engine, 20.0) is Band.NOT_A_DEAL
+    assert _band_at(engine, 8.0) is Band.NOT_A_DEAL
 
 
 def _deal(band: Band, margin: float) -> Deal:
@@ -120,3 +122,23 @@ def test_near_miss_embed_has_its_own_colour_and_wording() -> None:
 def test_deal_embed_is_not_blue() -> None:
     embed = build_embed(_deal(Band.ACTIONABLE, 40.0))
     assert embed["color"] != COLOR_NEAR_MISS
+
+
+# -- the DDR5 rule is a filter, not a rejection ---------------------------
+def test_a_non_ddr5_listing_is_valued_but_not_alerted() -> None:
+    """The specification targets DDR5 builds - but the ad stays visible."""
+    from snipeklein.models import Extraction
+    from snipeklein.pipeline import Pipeline
+    from snipeklein.store.decisions import OUTCOME_NOT_TARGET
+
+    class _Stub:
+        config = None
+
+    pipeline = _Stub()  # type: ignore[assignment]
+    pipeline.config = type("C", (), {"filters": type("F", (), {"required_ram_generation": "DDR5"})()})()
+    assert Pipeline._is_target_spec(
+        pipeline, Extraction(ram_generation="DDR5")
+    )
+    assert not Pipeline._is_target_spec(pipeline, Extraction(ram_generation="DDR4"))
+    assert not Pipeline._is_target_spec(pipeline, Extraction(ram_generation="UNKNOWN"))
+    assert OUTCOME_NOT_TARGET == "not_target"

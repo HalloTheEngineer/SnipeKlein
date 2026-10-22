@@ -7,7 +7,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 7
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -90,6 +90,20 @@ CREATE TABLE IF NOT EXISTS extractions (
     prompt_version TEXT DEFAULT '',
     created_at     TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS market_systems (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    build_id     TEXT NOT NULL,
+    ad_id        TEXT DEFAULT '',
+    title        TEXT DEFAULT '',
+    asking_eur   REAL,
+    parts_sum_eur REAL,
+    estimate_eur REAL,
+    ratio        REAL,
+    source       TEXT DEFAULT 'estimate',
+    observed_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_market_systems_build ON market_systems(build_id, observed_at);
 
 CREATE TABLE IF NOT EXISTS price_observations (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -181,6 +195,31 @@ def connect(db_path: str | Path) -> sqlite3.Connection:
 MIGRATIONS: list[tuple[int, list[str]]] = [
     (3, ["ALTER TABLE ad_decisions ADD COLUMN snippet TEXT DEFAULT ''"]),
     (
+        7,
+        ["ALTER TABLE market_systems ADD COLUMN estimate_eur REAL"],
+    ),
+    (
+        6,
+        ["ALTER TABLE market_systems ADD COLUMN source TEXT DEFAULT 'estimate'"],
+    ),
+    (
+        5,
+        [
+            """CREATE TABLE IF NOT EXISTS market_systems (
+                   id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                   build_id      TEXT NOT NULL,
+                   ad_id         TEXT DEFAULT '',
+                   title         TEXT DEFAULT '',
+                   asking_eur    REAL,
+                   parts_sum_eur REAL,
+                   ratio         REAL,
+                   observed_at   TEXT NOT NULL
+               )""",
+            "CREATE INDEX IF NOT EXISTS idx_market_systems_build "
+            "ON market_systems(build_id, observed_at)",
+        ],
+    ),
+    (
         4,
         [
             "ALTER TABLE ad_decisions ADD COLUMN card_price REAL",
@@ -213,7 +252,7 @@ def migrate(conn: sqlite3.Connection) -> None:
     """Create the schema if needed and upgrade it to the current version."""
     conn.executescript(_SCHEMA)
     version = schema_version(conn)
-    for target, statements in MIGRATIONS:
+    for target, statements in sorted(MIGRATIONS, key=lambda item: item[0]):
         if version >= target:
             continue
         for statement in statements:

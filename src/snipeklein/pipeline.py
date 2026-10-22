@@ -21,16 +21,18 @@ from .ingestion.detail_parser import DetailParseError, parse_listing
 from .ingestion.queries import build_search_url
 from .ingestion.search_parser import parse_cards
 from .logging_setup import get_logger
-from .models import Band, Deal, SearchCard
+from .models import Band, Deal, Extraction, SearchCard
 from .notify.discord import DiscordError, DiscordNotifier
 from .store.decisions import (
     OUTCOME_ACCEPTED,
     OUTCOME_ALERTED,
     OUTCOME_NEAR_MISS,
+    OUTCOME_NOT_TARGET,
     OUTCOME_REJECTED,
     Decision,
     DecisionRepo,
 )
+from .store.market import MarketRepo
 from .store.repo import (
     AlertRepo,
     ExtractionRepo,
@@ -149,7 +151,10 @@ class Pipeline:
         self.decisions = DecisionRepo(conn)
 
         self.table = PriceTable.load(config.prices_path, self.prices.all_prices())
-        self.engine = ValuationEngine(table=self.table, config=config.valuation)
+        self.market = MarketRepo(conn)
+        self.engine = ValuationEngine(
+            table=self.table, config=config.valuation, market=self.market
+        )
         self.risk_engine = RiskEngine(config.risk)
         self.triage = Triage(self.table, config.filters, self.engine)
         self.extractor = Extractor(
@@ -406,6 +411,29 @@ class Pipeline:
         )
 
         is_near_miss = valuation.band is Band.NEAR_MISS
+        # The specification targets DDR5 builds.  A listing that is not DDR5
+        # is still valued and visible, it is just never alerted.
+        if not self._is_target_spec(outcome.extraction):
+            result.reject("not_ddr5")
+            steps.append(
+                {
+                    "stage": "valuation",
+                    "outcome": "not_target",
+                    "reason": "not a DDR5 build - valued, but never alerted",
+                }
+            )
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_NOT_TARGET,
+                stage="valuation",
+                reason="not a DDR5 build - valued, but never alerted",
+                reason_code="not_ddr5",
+                detail=detail,
+                price=listing.price,
+            )
+            return
+
         if valuation.band not in (Band.ACTIONABLE, Band.EXTREME, Band.NEAR_MISS):
             result.reject(f"band:{valuation.band.value}")
             steps.append(
@@ -555,7 +583,15 @@ class Pipeline:
             reason=decision_reason,
             reason_code=decision_code,
             detail=detail,
+            price=listing.price,
         )
+
+    def _is_target_spec(self, extraction: Extraction) -> bool:
+        """Is this a listing of the kind we are looking for (DDR5)?"""
+        required = self.config.filters.required_ram_generation.upper()
+        if required == "DDR5":
+            return (extraction.ram_generation or "").upper() == "DDR5"
+        return True
 
     def _record_decision(
         self,

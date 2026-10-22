@@ -72,6 +72,8 @@ def _components_text(deal: Deal) -> str:
         f"**PSU:** {extraction.psu_wattage or '?'} W",
         f"**OS dabei:** {'ja' if extraction.operating_system_included else 'nein'}",
     ]
+    if extraction.accessories:
+        lines.append(f"**Dazu:** {', '.join(extraction.accessories)}")
     return "\n".join(lines)
 
 
@@ -123,6 +125,8 @@ def build_embed(deal: Deal) -> dict:
             "Marktniveau, das ist kein echter Rabatt. Zum Weiterverhandeln "
             "interessant, aber kein Fund."
         )
+    if valuation.price_rank is not None:
+        description += f"\n📊 Preisrang p{round(valuation.price_rank)} in dieser Konfiguration"
     if valuation.notes:
         description += "\n" + " / ".join(valuation.notes)
 

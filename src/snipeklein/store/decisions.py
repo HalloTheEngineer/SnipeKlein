@@ -18,6 +18,7 @@ OUTCOME_REJECTED = "rejected"
 OUTCOME_ACCEPTED = "accepted"
 OUTCOME_ALERTED = "alerted"
 OUTCOME_NEAR_MISS = "near_miss"
+OUTCOME_NOT_TARGET = "not_target"
 
 
 @dataclass

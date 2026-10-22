@@ -96,14 +96,18 @@ class FilterConfig:
 
 @dataclass(frozen=True)
 class ValuationConfig:
-    bundle_discount: float = 0.12
     min_coverage: float = 0.75
-    actionable_margin_min_pct: float = 30.0
-    actionable_margin_max_pct: float = 55.0
-    extreme_margin_pct: float = 60.0
+    actionable_margin_min_pct: float = 12.0
+    actionable_margin_max_pct: float = 30.0
+    extreme_margin_pct: float = 30.0
+    # The market asks a multiple of the sum of a system's parts.  It is
+    # calibrated from the observed system market, not guessed.
+    assembly_fallback: float = 1.0
+    assembly_min_samples: int = 8
+    assembly_window_days: int = 14
     # Listings between this margin and the actionable band are reported as a
     # "near miss" - clearly not a deal, but worth a look.
-    near_miss_margin_min_pct: float = 15.0
+    near_miss_margin_min_pct: float = 5.0
     near_miss_alerts: bool = True
     asking_to_sold_factor: float = 0.92
     min_price_samples: int = 5

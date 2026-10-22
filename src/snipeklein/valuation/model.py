@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import statistics
 from dataclasses import dataclass
+from typing import Any
 
 from ..config import ValuationConfig
 from ..logging_setup import get_logger
@@ -56,10 +57,44 @@ DEFECT_KEYWORDS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 
+def kind_median(table: PriceTable, kind: str) -> float:
+    values = [c.fmv_eur for c in table.by_kind(kind)]
+    if not values:
+        return 0.0
+    return float(statistics.median(values))
+
+
+def expected_fmv(table: PriceTable, components: list[Component]) -> float:
+    """What a complete system with these parts is worth (the unnamed parts
+    are assumed to be present and worth their median)."""
+    recognized: dict[str, float] = {}
+    for component in components:
+        recognized[component.kind] = recognized.get(component.kind, 0.0) + component.fmv_eur
+    total = sum(recognized.values())
+    for kind in EXPECTED_KINDS:
+        if kind in recognized:
+            continue
+        total += kind_median(table, kind) * PRESENCE.get(kind, 1.0)
+    return total
+
+
+def coverage_of(table: PriceTable, components: list[Component]) -> float:
+    """The share of a complete system that these parts represent."""
+    named = sum(component.fmv_eur for component in components)
+    if named <= 0:
+        return 0.0
+    expected = expected_fmv(table, components)
+    if expected <= 0:
+        return 0.0
+    return min(1.0, named / expected)
+
+
 @dataclass
 class ValuationEngine:
     table: PriceTable
     config: ValuationConfig
+    # optional: the complete-system market (calibrates the assembly factor)
+    market: Any = None
 
     # -- public ------------------------------------------------------------
     def value(self, extraction: Extraction, listing: Listing) -> Valuation:
@@ -90,7 +125,13 @@ class ValuationEngine:
 
         coverage = self._coverage(recognized_by_kind, gross)
 
-        net = (gross + adjustment_total) * (1.0 - self.config.bundle_discount)
+        # The value of the system is the sum of the parts the ad names.  The
+        # market asks a calibrated multiple of that sum (the assembly factor),
+        # and the accessories of a bundle are worth their own market value.
+        factor, factor_n = self._assembly_factor(extraction)
+        accessories = self._accessory_value(extraction)
+        estimate = self.expected_fmv(extraction, listing.condition_code)
+        net = (estimate + adjustment_total) * factor + accessories
         net -= sum(cost.cost_eur for cost in defect_costs)
         net = max(net, 0.0)
 
@@ -99,6 +140,8 @@ class ValuationEngine:
         margin_pct = (margin_eur / net * 100.0) if net > 0 else 0.0
 
         band = self._band(margin_pct)
+
+        rank = self._price_rank(valuation_price=asking, extraction=extraction)
 
         notes: list[str] = []
         if coverage < self.config.min_coverage:
@@ -111,11 +154,16 @@ class ValuationEngine:
         return Valuation(
             fmv_gross=round(gross, 2),
             fmv_net=round(net, 2),
+            fmv_estimate=round(estimate, 2),
+            assembly_factor=factor,
+            assembly_samples=factor_n,
+            accessories_eur=round(accessories, 2),
             asking_price=asking,
             margin_eur=round(margin_eur, 2),
             margin_pct=round(margin_pct, 2),
             band=band,
             coverage=round(coverage, 3),
+            price_rank=rank,
             components=component_values,
             defect_costs=defect_costs,
             adjustments=adjustments,
@@ -123,29 +171,32 @@ class ValuationEngine:
             notes=notes,
         )
 
-    def expected_fmv(self, extraction: Extraction) -> float:
+    def expected_fmv(self, extraction: Extraction, condition_code: str = "") -> float:
         """Value of a complete system, assuming the unnamed parts are present.
 
         Used by the cheap triage stage: it must not punish ads that simply do
         not spell out every component.
         """
         components = self._resolve_components(extraction)
-        condition = self.table.condition_multiplier("")
-        recognized: dict[str, float] = {}
-        for component in components:
-            recognized[component.kind] = recognized.get(component.kind, 0.0) + (
-                component.fmv_eur * condition
+        condition = self.table.condition_multiplier(condition_code)
+        scaled = [
+            Component(
+                id=component.id,
+                kind=component.kind,
+                label=component.label,
+                fmv_eur=component.fmv_eur * condition,
+                aliases=component.aliases,
+                tdp_w=component.tdp_w,
             )
-        total = sum(recognized.values())
-        for kind in EXPECTED_KINDS:
-            if kind in recognized:
-                continue
-            total += self._kind_median(kind) * PRESENCE.get(kind, 1.0)
-        return total
+            for component in components
+        ]
+        return expected_fmv(self.table, scaled)
 
     def expected_margin_pct(self, extraction: Extraction, price: float) -> float:
+        """The margin the triage estimates - the same model the valuation uses."""
         expected = self.expected_fmv(extraction)
-        net = expected * (1.0 - self.config.bundle_discount)
+        factor, _ = self._assembly_factor(extraction)
+        net = expected * factor
         if net <= 0:
             return 0.0
         return (net - price) / net * 100.0
@@ -236,10 +287,7 @@ class ValuationEngine:
         return min(1.0, gross / expected)
 
     def _kind_median(self, kind: str) -> float:
-        values = [c.fmv_eur for c in self.table.by_kind(kind)]
-        if not values:
-            return 0.0
-        return float(statistics.median(values))
+        return kind_median(self.table, kind)
 
     def _adjustments(
         self, extraction: Extraction, recognized: dict[str, float], gross: float
@@ -300,6 +348,40 @@ class ValuationEngine:
                 if amount > 0:
                     costs.append(DefectCost(label=defect, cost_eur=amount))
         return costs
+
+    def _assembly_factor(self, extraction: Extraction) -> tuple[float, int]:
+        """The calibrated multiple of the parts' sum that the market asks for."""
+        if self.market is None:
+            return self.config.assembly_fallback, 0
+        build_id = ""
+        gpu = self.table.match(extraction.gpu_model)
+        if gpu is not None:
+            build_id = gpu.id
+        return self.market.assembly_factor(
+            build_id,
+            min_samples=self.config.assembly_min_samples,
+            days=self.config.assembly_window_days,
+            fallback=self.config.assembly_fallback,
+        )
+
+    def _price_rank(self, valuation_price: float, extraction: Extraction) -> float | None:
+        """Where the asking price sits in the market of its configuration."""
+        if self.market is None or valuation_price <= 0:
+            return None
+        gpu = self.table.match(extraction.gpu_model)
+        build_id = gpu.id if gpu is not None else ""
+        return self.market.price_rank(valuation_price, build_id, self.config.assembly_window_days)
+
+    def _accessory_value(self, extraction: Extraction) -> float:
+        """The market value of the accessories a bundle includes."""
+        if not extraction.accessories:
+            return 0.0
+        total = 0.0
+        for accessory in extraction.accessories:
+            component = self.table.match(accessory)
+            if component is not None and component.kind == "accessory":
+                total += component.fmv_eur
+        return total
 
     def _band(self, margin_pct: float) -> Band:
         if margin_pct >= self.config.extreme_margin_pct:

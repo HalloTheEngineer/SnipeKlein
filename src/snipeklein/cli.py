@@ -22,6 +22,7 @@ from .pipeline import Pipeline
 from .schedule import next_daily_run, parse_hhmm
 from .store.backup import create_backup
 from .store.db import connect, migrate
+from .store.market import MarketRepo
 from .store.repo import (
     AlertRepo,
     FilterStatsRepo,
@@ -143,6 +144,7 @@ def cmd_value(args: argparse.Namespace) -> int:
 def _daily_refresh_loop(args: argparse.Namespace, config: Config) -> int:
     """Refresh the price table once a day at a fixed local time."""
     from .valuation.harvester import PriceHarvester
+    from .valuation.model import ValuationEngine
     from .valuation.table import PriceTable
 
     hour, minute = parse_hhmm(args.daily_at)
@@ -160,6 +162,15 @@ def _daily_refresh_loop(args: argparse.Namespace, config: Config) -> int:
             )
             time.sleep(wait)
             table = PriceTable.load(config.prices_path, repo.all_prices())
+            market = MarketRepo(conn)
+            engine = ValuationEngine(
+                table=table, config=config.valuation, market=market
+            )
+            extractor = Extractor(
+                config.llm,
+                required_ram_generation=config.filters.required_ram_generation,
+                require_complete_system=False,
+            )
             client = KleinanzeigenClient(config.ingestion)
             try:
                 harvester = PriceHarvester(
@@ -170,6 +181,9 @@ def _daily_refresh_loop(args: argparse.Namespace, config: Config) -> int:
                     config.ingestion.base_url,
                     force=args.force,
                     curated=PriceTable.load(config.prices_path),
+                    market=market,
+                    extractor=extractor,
+                    engine=engine,
                 )
                 results = harvester.harvest()
             except Exception as exc:
@@ -180,6 +194,20 @@ def _daily_refresh_loop(args: argparse.Namespace, config: Config) -> int:
                     f"[price-refresher] refreshed {len(refreshed)}/{len(results)} components",
                     flush=True,
                 )
+                try:
+                    market_results = harvester.harvest_market()
+                    measured = [r for r in market_results if r.samples]
+                    print(
+                        f"[price-refresher] market: {len(measured)}/{len(market_results)} "
+                        "builds measured",
+                        flush=True,
+                    )
+                except Exception as exc:
+                    print(
+                        f"[price-refresher] market harvest failed: {exc}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
             finally:
                 client.close()
             if args.backup:
@@ -235,12 +263,16 @@ def cmd_prices(args: argparse.Namespace) -> int:
             print(f"imported {count} price rows")
             return 0
 
-        # refresh
+        # refresh / market
         from .valuation.harvester import PriceHarvester
         from .valuation.table import PriceTable
 
         if args.daily_at:
             return _daily_refresh_loop(args, config)
+
+        if args.action == "market":
+            _harvest_market(args, config, conn)
+            return 0
 
         repo = PriceRepo(conn)
         if args.reset_observations:
@@ -271,9 +303,47 @@ def cmd_prices(args: argparse.Namespace) -> int:
                 value = f"{result.fmv_eur:.0f} EUR" if result.fmv_eur else "no data"
                 print(f"{result.component_id:<34} n={result.samples:<3} {value}")
             print(f"\n{len(updated)}/{len(results)} components refreshed")
+        _harvest_market(args, config, conn)
         return 0
     finally:
         conn.close()
+
+
+def _harvest_market(args: argparse.Namespace, config: Config, conn: sqlite3.Connection) -> list:
+    """Harvest what complete systems with a given GPU really cost."""
+    from .valuation.harvester import PriceHarvester
+    from .valuation.model import ValuationEngine
+    from .valuation.table import PriceTable
+
+    repo = PriceRepo(conn)
+    table = PriceTable.load(config.prices_path, repo.all_prices())
+    market = MarketRepo(conn)
+    engine = ValuationEngine(table=table, config=config.valuation, market=market)
+    extractor = Extractor(
+        config.llm,
+        required_ram_generation=config.filters.required_ram_generation,
+        require_complete_system=False,
+    )
+    client = KleinanzeigenClient(config.ingestion)
+    try:
+        harvester = PriceHarvester(
+            client,
+            table,
+            config.valuation,
+            repo,
+            config.ingestion.base_url,
+            market=market,
+            extractor=extractor,
+            engine=engine,
+        )
+        results = harvester.harvest_market()
+    finally:
+        client.close()
+    print(f"\nmarket harvest: {len(results)} builds")
+    for result in results:
+        if result.samples:
+            print(f"  {result.build_id:<30} n={result.samples:<3} ratio {result.median_ratio:.2f}")
+    return results
 
 
 def cmd_listings(args: argparse.Namespace) -> int:
@@ -720,7 +790,7 @@ def build_parser() -> argparse.ArgumentParser:
     value.set_defaults(func=cmd_value)
 
     prices = sub.add_parser("prices", help="manage the component FMV table")
-    prices.add_argument("action", choices=["refresh", "show", "import"])
+    prices.add_argument("action", choices=["refresh", "market", "show", "import"])
     prices.add_argument("file", nargs="?", help="csv file for 'import'")
     prices.add_argument(
         "--force",

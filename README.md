@@ -193,6 +193,13 @@ kleinanzeigen itself: one targeted search per component, the asking prices of
 the matching listings, the outliers trimmed (median ± 3·MAD) and an
 `asking_to_sold_factor` of 0.92 applied.
 
+### The price view
+
+The panel shows the effective component table - the values the bot values
+against - and, per component, the market distribution it measured: the
+sampled asking prices, their median and the **price rank** of a listing
+within that distribution ("p8 - cheaper than 92 % of the observed systems").
+
 ### The decision panel
 
 Every ad the bot looks at is recorded with the decision it made and why - the
