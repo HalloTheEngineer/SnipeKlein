@@ -60,8 +60,9 @@ REASON_TEXTS = {
         "specifications are probably in the description"
     ),
     "bundle": (
-        "a bundle (computer plus monitor and other accessories) - the asking "
-        "price includes the accessories, so it is never a good deal"
+        "a bundle (computer plus monitor and other accessories) whose "
+        "specifications are not in the title - the price includes the "
+        "accessories, so it cannot be valued"
     ),
     "empty_title": "the listing has no title",
     "triage_components": "fewer than two components could be recognised",
@@ -72,7 +73,7 @@ REASON_TEXTS = {
     "ram_generation": "the RAM is not DDR5",
     "ram_unknown": "the RAM generation was not mentioned - treated as not DDR5",
     "triage_modern_tier": "the price table does not know this system yet",
-    "band": "the margin is not in the 30-55% deal band",
+    "band": "the margin is not in the deal band",
     "coverage": "too much of the system is unknown",
     "no_price": "the listing has no asking price",
     "detail_fetch_failed": "the listing page could not be loaded",
@@ -448,7 +449,7 @@ class Pipeline:
                 steps,
                 outcome=OUTCOME_REJECTED,
                 stage="valuation",
-                reason=f"margin {valuation.margin_pct:.1f}% is not in the 30-55% deal band",
+                reason=self._band_reason(valuation.margin_pct),
                 reason_code="band",
                 detail=detail,
                 price=listing.price,
@@ -584,6 +585,17 @@ class Pipeline:
             reason_code=decision_code,
             detail=detail,
             price=listing.price,
+        )
+
+    def _band_reason(self, margin_pct: float) -> str:
+        """Describe the margin with the bands that are actually configured."""
+        valuation = self.config.valuation
+        return (
+            f"margin {margin_pct:.1f}% - a deal is "
+            f"{valuation.actionable_margin_min_pct:.0f}-{valuation.actionable_margin_max_pct:.0f} %, "
+            f"a near miss is {valuation.near_miss_margin_min_pct:.0f}-"
+            f"{valuation.actionable_margin_min_pct:.0f} %, above "
+            f"{valuation.extreme_margin_pct:.0f} % is an outlier"
         )
 
     def _is_target_spec(self, extraction: Extraction) -> bool:

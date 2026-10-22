@@ -19,7 +19,7 @@ poll loop (45-85 s, jittered)
    -> triage          (regex component match + FMV estimate, no network, no LLM)
    -> detail page     (Astro props JSON + legacy template fallback)
    -> extraction      (Gemini, strict JSON schema, regex fallback)
-   -> valuation       (component FMV table + bundle discount + defect costs)
+   -> valuation       (parts FMV table + calibrated assembly factor + accessories)
    -> risk            (account age, badges, shipping, margin outliers)
    -> Discord webhook (green / yellow / red border)
 ```
@@ -102,18 +102,18 @@ merged on top.
 
 ### The near miss tier
 
-A listing that is priced 15-30 % under the market is reported as a **near
+A listing that is priced 5-12 % under the market is reported as a **near
 miss** - a blue embed that says so explicitly. It is *not* a deal, it is a
-listing worth negotiating on. The actionable band (30-55 %) stays exactly as
-the specification defines it, so a green or yellow alert always means a real
-bargain.
+listing worth negotiating on. The bands follow the measured spread of the
+used market (a fair price is within ~10 % of the sum of a system's parts), so
+a green or yellow alert always means a real discount.
 
 | band | margin | notification |
 |---|---|---|
-| extreme | > 60 % | red, "extremes Preis-Missverhältnis" |
-| actionable | 30-55 % | green/yellow, a deal |
-| near miss | 15-30 % | blue, "kein Deal - zum Verhandeln interessant" |
-| - | < 15 % | nothing |
+| extreme | > 30 % | red, "extremes Preis-Missverhältnis" |
+| actionable | 12-30 % | green/yellow, a deal |
+| near miss | 5-12 % | blue, "kein Deal - zum Verhandeln interessant" |
+| - | < 5 % | nothing |
 
 The near miss obeys the same coverage guard as a deal: a listing whose
 specification is only 30 % known is not informative, so it is dropped instead.
@@ -376,10 +376,11 @@ Important keys:
 | `ingestion` | `proxy_url` | optional DE/EU proxy |
 | `filters` | `required_ram_generation` | `DDR5` |
 | `filters` | `triage_min_margin_pct` | margin a listing needs to reach before it costs an LLM call |
-| `valuation` | `bundle_discount` | 0.12 (spec: 0.10-0.15) |
 | `valuation` | `min_coverage` | share of a complete system that must be known (0.75) |
-| `valuation` | `actionable_margin_min_pct` / `max_pct` | 30 / 55 |
-| `valuation` | `extreme_margin_pct` | 60 |
+| `valuation` | `actionable_margin_min_pct` / `max_pct` | 12 / 30 |
+| `valuation` | `near_miss_margin_min_pct` | 5 |
+| `valuation` | `extreme_margin_pct` | 30 |
+| `valuation` | `assembly_fallback` / `assembly_min_samples` | 1.0 / 8 (the calibrated factor) |
 | `llm` | `model` / `fallback_model` | `gemini-3.5-flash-lite` / `gemini-3.1-flash-lite` |
 | `llm` | `max_rpm` | local rate limit (6 requests per minute) |
 | `risk` | `account_new_days` | accounts younger than this are flagged (30) |
@@ -401,9 +402,11 @@ URLs and `tests/test_queries.py` locks the layout down.
 ## Valuation model
 
 ```text
-FMV_gross = sum(Price(component))
-FMV_net   = (FMV_gross + adjustments) * (1 - bundle_discount) - sum(Cost(defects))
-Margin %  = (FMV_net - asking_price) / FMV_net * 100
+FMV_gross    = sum(Price(component))                  the real value: the named parts
+estimate     = FMV_gross + the medians of the unnamed parts
+FMV_net      = (estimate + adjustments) * assembly_factor + accessories
+               - sum(Cost(defects))
+Margin %     = (FMV_net - asking_price) / FMV_net * 100
 ```
 
 * Only components that are actually named in the ad are valued - the buyer
@@ -417,12 +420,16 @@ Margin %  = (FMV_net - asking_price) / FMV_net * 100
   value), unknown defects (30 EUR).
 * Condition multipliers: `like_new` 1.0, `ok` 0.93, `alright` 0.85,
   `defect` 0.6, unknown 0.9.
-* Bands: **actionable** 30-55 %, **extreme** > 60 %, everything else is no deal.
+* Bands: **actionable** 12-30 %, **near miss** 5-12 %, **extreme** > 30 %,
+  everything else is no deal.
+* `assembly_factor` is measured from the used market (see above), not a
+  guessed bundle discount.
 
 ### Price table
 
-`data/prices.json` is the source of truth: ~90 components (CPUs, GPUs, RAM,
-storage, boards, PSUs, case/cooler bundle) with aliases that are matched
+`data/prices.json` is the source of truth: 95 components (CPUs, GPUs, RAM,
+storage, boards, PSUs, the case/cooler bundle and the accessories a bundle can
+include) with aliases that are matched
 case- and space-insensitively. It is shipped with the image (`/app/prices.json`)
 and the harvested values are layered on top from the database in the volume.
 

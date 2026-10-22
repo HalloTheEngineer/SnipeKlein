@@ -142,3 +142,34 @@ def test_a_non_ddr5_listing_is_valued_but_not_alerted() -> None:
     assert not Pipeline._is_target_spec(pipeline, Extraction(ram_generation="DDR4"))
     assert not Pipeline._is_target_spec(pipeline, Extraction(ram_generation="UNKNOWN"))
     assert OUTCOME_NOT_TARGET == "not_target"
+
+
+def test_the_band_reason_follows_the_configuration() -> None:
+    """The stored reason must quote the bands that are actually in force."""
+    from snipeklein.pipeline import Pipeline
+
+    class _Stub:
+        config = None
+
+    pipeline = _Stub()  # type: ignore[assignment]
+    pipeline.config = type(
+        "C",
+        (),
+        {
+            "valuation": type(
+                "V",
+                (),
+                {
+                    "actionable_margin_min_pct": 12.0,
+                    "actionable_margin_max_pct": 30.0,
+                    "near_miss_margin_min_pct": 5.0,
+                    "extreme_margin_pct": 30.0,
+                },
+            )()
+        },
+    )()
+    reason = Pipeline._band_reason(pipeline, 8.0)  # type: ignore[arg-type]
+    assert "12-30" in reason
+    assert "5-12" in reason
+    assert "30" in reason
+    assert "30-55" not in reason
