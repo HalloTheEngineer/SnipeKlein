@@ -129,11 +129,29 @@ too.
 
 ### What the bot looks for
 
+The early stages work on the *search card* - the title plus the first line of
+the description - because the card is free and the detail page is not. The
+card level matcher therefore has to understand the notations sellers use:
+
+| written as | read as |
+|---|---|
+| `32GB (2x 16GB) DDR5-6000` | a 32 GB DDR5 kit |
+| `32GB (2x 16384MB) … DDR4-3200` | a 32 GB DDR4 kit |
+| `1,5TB Samsung SSD 980 PRO` | a 2 TB SSD |
+| `1000 GB NVMe` | a 1 TB NVMe drive |
+| `be quiet! Straight Power 12 M 750W` | a 750 W power supply |
+
+Only one component per kind is counted - a system has one graphics card, one
+memory kit, one drive - so a title that matches two drives does not inflate
+the estimate.
+
+
+
 The queries are keyword based, and the site indexes the **description** - so
-the keyword `ddr5` surfaces the DDR5 systems whose title only says "Gaming PC"
-(the generic `gaming pc` search buries them: 25 of 27 `ddr5` results are new,
-the union of the two searches is 76 ads against 27). That is how a listing with
-a generic title still reaches the extraction.
+the keywords `ddr5`, `am5 gaming pc`, `7800x3d pc`, `rtx 4070 ti pc` and
+`5070 gaming pc` surface the DDR5 systems whose title only says "Gaming PC"
+(the generic `gaming pc` search buries them: 25 of 27 `ddr5` results are new).
+That is how a listing with a generic title still reaches the extraction.
 
 The first filter runs on the search card, so it only sees the title and the
 first line of the description. A listing that names no component there is

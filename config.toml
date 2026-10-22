@@ -30,7 +30,11 @@ category_id = 228
 # "ddr5" is not a luxury keyword: the site indexes the description, so it
 # surfaces the DDR5 systems whose title only says "Gaming PC" - the generic
 # "gaming pc" search buries them (25 of 27 results are new).
-keywords = ["gaming pc", "gaming pc ddr5", "ddr5", "rtx 4070", "rtx 4080"]
+# The site indexes the description, so every keyword is a different slice of
+# the market: the "ddr5"/"am5"/model keywords reach the listings whose
+# specifications are in the body and not in the title.
+keywords = ["gaming pc", "gaming pc ddr5", "ddr5", "ddr5 pc", "am5 gaming pc",
+           "7800x3d pc", "rtx 4070", "rtx 4070 ti pc", "rtx 4080", "5070 gaming pc"]
 min_price = 300
 max_price = 1800
 max_pages = 1

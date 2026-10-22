@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from typing import Any
 
+# How much of the description goes into the prompt.
+MAX_DESCRIPTION_CHARS = 12000
+
 EXTRACTION_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -109,7 +112,18 @@ Beschreibung:
 
 
 def build_user_prompt(title: str, description: str) -> str:
+    """Build the extraction prompt.
+
+    Long descriptions are cut down, but both ends are kept: the introduction
+    is often at the top and the specification list at the bottom.
+    """
     description = (description or "").strip()
-    if len(description) > 6000:
-        description = description[:6000] + " [...]"
+    if len(description) > MAX_DESCRIPTION_CHARS:
+        head = MAX_DESCRIPTION_CHARS * 2 // 3
+        tail = MAX_DESCRIPTION_CHARS - head
+        description = (
+            description[:head]
+            + f"\n[... {len(description) - MAX_DESCRIPTION_CHARS} Zeichen ausgelassen ...]\n"
+            + description[-tail:]
+        )
     return USER_PROMPT_TEMPLATE.format(title=title.strip(), description=description or "(leer)")
