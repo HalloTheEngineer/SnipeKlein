@@ -178,3 +178,32 @@ def test_the_decision_uses_the_detail_price_not_the_card_price(pipeline: Pipelin
     assert decision["price"] == 700.0
     # the search index said 7 EUR - kept separately
     assert decision["card_price"] == 7.0
+
+
+def test_price_reload_keeps_the_market_calibration(pipeline: Pipeline) -> None:
+    """The nightly price refresh must not silently drop the assembly factor.
+
+    The bot reloads the component table whenever the harvester changed a
+    price.  Rebuilding the engine without the complete-system market would
+    make every following valuation fall back to factor 1.0 and lose the
+    price rank - invisibly, until the next restart.
+    """
+    for index in range(10):
+        pipeline.market.add(
+            "NVIDIA_RTX_4070_12GB",
+            f"market-{index}",
+            "Gaming PC RTX 4070",
+            1200.0,
+            1000.0,
+            estimate_eur=1000.0,
+            source="llm",
+        )
+    pipeline.prices.set_price("AMD_RYZEN_7_7800X3D", 999.0, source="market", sample_n=5)
+    assert pipeline.reload_prices() is True
+    assert pipeline.engine.market is pipeline.market
+
+    result = pipeline.run_cycle(dry_run=True)
+    deal = result.deals[0]
+    assert deal.valuation.assembly_samples == 10
+    assert deal.valuation.assembly_factor == pytest.approx(1.2)
+    assert deal.valuation.price_rank is not None

@@ -184,7 +184,9 @@ class Pipeline:
         if before == after:
             return False
         self.table = fresh
-        self.engine = ValuationEngine(table=fresh, config=self.config.valuation)
+        self.engine = ValuationEngine(
+            table=fresh, config=self.config.valuation, market=self.market
+        )
         self.triage = Triage(fresh, self.config.filters, self.engine)
         changed = sum(1 for key, value in after.items() if before.get(key) != value)
         log.info("reloaded the component table (%s prices changed)", changed)
