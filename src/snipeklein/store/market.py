@@ -114,12 +114,20 @@ class MarketRepo:
         return [float(row["asking_eur"]) for row in rows]
 
     def assembly_factor(
-        self, build_id: str = "", min_samples: int = 8, days: int = 14, fallback: float = 1.0
+        self,
+        build_id: str = "",
+        min_samples: int = 8,
+        days: int = 14,
+        fallback: float = 1.0,
+        sold_factor: float = 1.0,
     ) -> tuple[float, int]:
         """The calibrated multiple of the parts' sum that the market asks for.
 
         A per-build factor needs enough samples of its own; until then the
-        factor measured across all builds is used.
+        factor measured across all builds is used.  ``sold_factor`` converts
+        the observed *asking* ratio to an achievable sold price; it is only
+        applied to a measured median, never to the fallback (an uncalibrated
+        installation must not value systems below their parts' sum).
         """
         ratios = self.ratios(build_id, days)
         if len(ratios) < min_samples:
@@ -127,7 +135,23 @@ class MarketRepo:
             if len(ratios) < min_samples:
                 return fallback, len(ratios)
         trimmed = _trim_outliers(ratios)
-        return round(statistics.median(trimmed), 4), len(ratios)
+        return round(statistics.median(trimmed) * sold_factor, 4), len(ratios)
+
+    def calibration(self, days: int = 14, sold_factor: float = 1.0) -> dict[str, Any]:
+        """What the assembly factor is based on - for the health report."""
+        ratios = self.ratios("", days)
+        row = self.conn.execute(
+            "SELECT MAX(observed_at) AS newest FROM market_systems WHERE source = 'llm'"
+        ).fetchone()
+        newest = row["newest"] if row is not None else None
+        if not ratios:
+            return {"samples": 0, "factor": None, "newest_sample_at": newest}
+        trimmed = _trim_outliers(ratios)
+        return {
+            "samples": len(ratios),
+            "factor": round(statistics.median(trimmed) * sold_factor, 4),
+            "newest_sample_at": newest,
+        }
 
     def price_rank(
         self, asking_eur: float, build_id: str = "", days: int = 14, min_samples: int = 5

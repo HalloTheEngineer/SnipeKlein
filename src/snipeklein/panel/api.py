@@ -83,11 +83,15 @@ class PanelData:
         alerts = self.conn.execute("SELECT COUNT(*) AS c FROM alerts").fetchone()["c"]
         listings = self.conn.execute("SELECT COUNT(*) AS c FROM listings").fetchone()["c"]
         prices = self.conn.execute("SELECT COUNT(*) AS c FROM price_table").fetchone()["c"]
+        health = collect_health(self.config, self.conn, check_secrets=False)
         return {
             "decisions": decisions,
             "listings": listings,
             "alerts": alerts,
             "price_rows": prices,
+            "version": health.get("version", "unknown"),
+            "market": health.get("market", {}),
+            "refresh": health.get("refresh", {}),
             "llm_requests_today": today_requests,
             "llm_tokens_today": today_tokens,
             "last_run": last_run,

@@ -173,3 +173,15 @@ def test_state_survives_a_restart(tmp_path: Path) -> None:
     clock.advance(60)
     restarted.tick()
     assert len(messages) == 1
+
+
+def test_the_alarm_names_a_stale_price_refresh(tmp_path: Path) -> None:
+    clock = FakeClock()
+    messages: list[str] = []
+    report = _report("attention", refresh={"stale": True})
+    watchdog = _watchdog(tmp_path, clock, report, messages)
+    clock.advance(700)
+    for _ in range(3):
+        watchdog.tick()
+    assert messages
+    assert "price/market refresh is stale" in messages[0]

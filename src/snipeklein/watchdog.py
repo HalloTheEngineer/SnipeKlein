@@ -162,6 +162,8 @@ class Watchdog:
             reasons.append(f"{report['last_run']['errors']} errors in the last run")
         if report.get("missing"):
             reasons.append("missing " + ", ".join(report["missing"]))
+        if (report.get("refresh") or {}).get("stale"):
+            reasons.append("price/market refresh is stale")
         detail = "; ".join(reasons) or "unknown problem"
         return (
             f"🔴 SnipeKlein is unhealthy - {detail}\n"

@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import UTC, datetime
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 from .config import Config
+from .store.market import MarketRepo
 from .store.repo import ListingRepo, RunRepo, UsageRepo
 
 STATUS_OK = "ok"
@@ -23,6 +25,29 @@ STATUS_STARTING = "starting"
 STATUS_ATTENTION = "attention"
 
 EXIT_CODES = {STATUS_OK: 0, STATUS_STARTING: 0, STATUS_ATTENTION: 1}
+
+# The price refresher runs once a day; two missed days is a real problem.
+REFRESH_STALE_HOURS = 48
+
+
+def _package_version() -> str:
+    try:
+        return version("snipeklein")
+    except PackageNotFoundError:  # pragma: no cover - installed in production
+        return "unknown"
+
+
+def _age_hours(timestamp: Any) -> float | None:
+    text = str(timestamp or "").strip()
+    if not text:
+        return None
+    try:
+        moment = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return max(0.0, (datetime.now(UTC) - moment).total_seconds() / 3600.0)
 
 
 def collect_health(
@@ -54,6 +79,24 @@ def collect_health(
         except ValueError:
             run_age_s = None
 
+    # What the valuation is calibrated on.  A silently empty or stale market
+    # was invisible for a week before, so it is part of the verdict now.
+    calibration = MarketRepo(conn).calibration(
+        days=config.valuation.assembly_window_days,
+        sold_factor=config.valuation.asking_to_sold_factor,
+    )
+    price_row = conn.execute(
+        "SELECT COUNT(*) AS c, MAX(updated_at) AS last_update FROM price_table"
+    ).fetchone()
+    measured_row = conn.execute(
+        "SELECT COUNT(*) AS c FROM price_table WHERE source = 'kleinanzeigen'"
+    ).fetchone()
+    market_age_h = _age_hours(calibration.get("newest_sample_at"))
+    price_age_h = _age_hours(price_row["last_update"])
+    refresh_stale = (market_age_h is not None and market_age_h > REFRESH_STALE_HOURS) or (
+        price_age_h is not None and price_age_h > REFRESH_STALE_HOURS
+    )
+
     never_ran = not started_at
     stale_after = 3 * max(config.ingestion.poll_interval_max_s, 60)
     # A run that exists but cannot be dated is treated as stale.
@@ -69,7 +112,7 @@ def collect_health(
 
     if never_ran:
         status = STATUS_STARTING
-    elif stale or errors or missing:
+    elif stale or errors or missing or refresh_stale:
         status = STATUS_ATTENTION
     else:
         status = STATUS_OK
@@ -93,6 +136,18 @@ def collect_health(
         "llm_quota_errors_today": today_429,
         "llm_errors_today": today_errors,
         "queries": [q.tag for q in config.queries],
+        "version": _package_version(),
+        "market": calibration,
+        "prices": {
+            "rows": int(price_row["c"]),
+            "measured": int(measured_row["c"]),
+            "last_update": price_row["last_update"],
+        },
+        "refresh": {
+            "market_sample_age_h": round(market_age_h, 1) if market_age_h is not None else None,
+            "price_age_h": round(price_age_h, 1) if price_age_h is not None else None,
+            "stale": refresh_stale,
+        },
         "status": status,
     }
 
@@ -127,6 +182,24 @@ def format_health(report: dict[str, Any]) -> str:
         f"llm today   : {report['llm_requests_today']} requests, "
         f"{report['llm_errors_today']} errors, {report['llm_quota_errors_today']} quota errors",
         f"queries     : {', '.join(report['queries'])}",
+        f"version     : {report.get('version', 'unknown')}",
+        (
+            "calibration : "
+            + (
+                f"{report['market']['samples']} systems, factor {report['market']['factor']}"
+                if report.get("market", {}).get("factor") is not None
+                else "no measured systems yet"
+            )
+        ),
+        (
+            "refresh     : "
+            + (
+                f"market {report['refresh']['market_sample_age_h']}h ago, "
+                f"prices {report['refresh']['price_age_h']}h ago"
+                if report.get("refresh")
+                else "unknown"
+            )
+        ),
         f"status      : {report['status'].upper()}",
     ]
     if report["status"] == STATUS_STARTING:
@@ -140,4 +213,9 @@ def format_health(report: dict[str, Any]) -> str:
         lines.append("             -> the last run had errors, check the logs")
     if report["missing"]:
         lines.append("             -> missing: " + ", ".join(report["missing"]))
+    if (report.get("refresh") or {}).get("stale"):
+        lines.append(
+            "             -> the price/market refresh is stale "
+            f"(limit {REFRESH_STALE_HOURS}h), check the price-refresher"
+        )
     return "\n".join(lines)

@@ -102,3 +102,40 @@ def test_missing_secrets_are_attention(tmp_path: Path, conn: sqlite3.Connection)
     assert report["status"] == STATUS_ATTENTION
     assert "llm key" in report["missing"]
     assert "discord webhook" in report["missing"]
+
+
+def _insert_market_sample(conn: sqlite3.Connection, observed_at: datetime) -> None:
+    conn.execute(
+        "INSERT INTO market_systems (build_id, ad_id, title, asking_eur, parts_sum_eur, "
+        "estimate_eur, ratio, source, observed_at) VALUES (?,?,?,?,?,?,?,?,?)",
+        ("NVIDIA_RTX_4070_12GB", "1", "Gaming PC", 1200.0, 1000.0, 1000.0, 1.2, "llm",
+         observed_at.isoformat()),
+    )
+
+
+def test_the_report_carries_version_and_calibration(
+    tmp_path: Path, conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MISSING_KEY_FOR_TESTS", "key")
+    monkeypatch.setenv("MISSING_HOOK_FOR_TESTS", "https://example.invalid/hook")
+    _insert_run(conn, datetime.now(UTC) - timedelta(seconds=30))
+    _insert_market_sample(conn, datetime.now(UTC) - timedelta(hours=1))
+    report = collect_health(_config(tmp_path), conn)
+    assert report["version"]
+    assert report["market"]["samples"] == 1
+    assert report["market"]["factor"] == pytest.approx(1.104)
+    assert report["refresh"]["stale"] is False
+    assert report["status"] == STATUS_OK
+
+
+def test_a_stale_market_refresh_is_attention(
+    tmp_path: Path, conn: sqlite3.Connection, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If the refresher dies, the calibration silently rots - say so."""
+    monkeypatch.setenv("MISSING_KEY_FOR_TESTS", "key")
+    monkeypatch.setenv("MISSING_HOOK_FOR_TESTS", "https://example.invalid/hook")
+    _insert_run(conn, datetime.now(UTC) - timedelta(seconds=30))
+    _insert_market_sample(conn, datetime.now(UTC) - timedelta(days=3))
+    report = collect_health(_config(tmp_path), conn)
+    assert report["refresh"]["stale"] is True
+    assert report["status"] == STATUS_ATTENTION

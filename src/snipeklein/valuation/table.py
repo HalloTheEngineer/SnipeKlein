@@ -219,7 +219,13 @@ def _merge_db_prices(components: list[Component], db_prices: dict[str, dict[str,
             continue
         if component.pinned:
             continue
-        component.fmv_eur = float(row.get("fmv_eur", component.fmv_eur))
-        component.source = str(row.get("source", component.source))
+        source = str(row.get("source", component.source))
         component.confidence = float(row.get("confidence", component.confidence))
         component.sample_n = int(row.get("sample_n", 0) or 0)
+        if source == "curated":
+            # A curated row is only a snapshot of the file's baseline: when
+            # the harvester kept the curated value, the row must not pin an
+            # outdated baseline forever.  The file stays the source of truth.
+            continue
+        component.fmv_eur = float(row.get("fmv_eur", component.fmv_eur))
+        component.source = source

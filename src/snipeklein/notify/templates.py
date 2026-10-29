@@ -9,6 +9,7 @@ from ..models import (
     Deal,
     RiskLevel,
     ShippingMode,
+    ad_age_days,
 )
 
 COLOR_GREEN = 0x2ECC71
@@ -98,6 +99,16 @@ def _seller_text(deal: Deal) -> str:
     return "\n".join(lines)
 
 
+def _ad_age_text(listing: object) -> str:
+    posted = str(getattr(listing, "posted_at", "") or "")
+    if not posted:
+        return "unbekannt"
+    age = ad_age_days(posted)
+    if age is None:
+        return posted
+    return f"{posted} ({age} Tage online)"
+
+
 def _risk_text(deal: Deal) -> str:
     risk = deal.risk
     lines = [RISK_LABEL[risk.level], f"**Score:** {risk.score}"]
@@ -135,6 +146,7 @@ def build_embed(deal: Deal) -> dict:
         {"name": "📈 FMV (net)", "value": _fmt_eur(valuation.fmv_net), "inline": True},
         {"name": "📊 Marge", "value": f"{valuation.margin_pct:+.1f} %", "inline": True},
         {"name": "🏷️ Einstufung", "value": BAND_LABEL[valuation.band], "inline": True},
+        {"name": "🗓️ Anzeige", "value": _ad_age_text(listing), "inline": True},
         {"name": "🧩 Hardware", "value": _components_text(deal), "inline": False},
         {"name": "👤 Verkäufer", "value": _seller_text(deal), "inline": False},
         {"name": "🚨 Risiko", "value": _risk_text(deal), "inline": False},

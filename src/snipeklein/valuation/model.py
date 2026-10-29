@@ -362,6 +362,7 @@ class ValuationEngine:
             min_samples=self.config.assembly_min_samples,
             days=self.config.assembly_window_days,
             fallback=self.config.assembly_fallback,
+            sold_factor=self.config.asking_to_sold_factor,
         )
 
     def _price_rank(self, valuation_price: float, extraction: Extraction) -> float | None:

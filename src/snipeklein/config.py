@@ -92,6 +92,9 @@ class FilterConfig:
     # Let ads whose title hints at a current platform through to the extraction
     # even when the price table does not know the model yet.
     modern_platform_tier: bool = True
+    # Old listings are often sold already.  An ad older than this is valued
+    # and recorded, but never alerted.  0 disables the check.
+    max_alert_age_days: int = 14
 
 
 @dataclass(frozen=True)

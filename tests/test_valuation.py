@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from snipeklein.config import FilterConfig, RiskConfig, ValuationConfig
@@ -255,3 +257,36 @@ def test_risk_is_green_for_an_established_private_seller() -> None:
     valuation = Valuation(fmv_net=1000.0, asking_price=700.0, margin_pct=30.0)
     risk = engine.assess(listing, extraction, valuation)
     assert risk.level is RiskLevel.GREEN
+
+
+def test_curated_rows_do_not_pin_an_outdated_baseline(tmp_path) -> None:
+    """A refreshed curated value must reach an existing database."""
+    path = tmp_path / "prices.json"
+    path.write_text(
+        json.dumps(
+            {
+                "components": [
+                    {
+                        "id": "TEST_RAM",
+                        "kind": "ram",
+                        "label": "test",
+                        "fmv_eur": 200.0,
+                        "aliases": ["test ram"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    snapshot = {"fmv_eur": 85.0, "source": "curated", "confidence": 1.0, "sample_n": 28}
+
+    table = PriceTable.load(path, {"TEST_RAM": snapshot})
+    component = table.get("TEST_RAM")
+    assert component is not None
+    assert component.fmv_eur == 200.0
+    assert component.sample_n == 28
+
+    measured = dict(snapshot, source="kleinanzeigen")
+    table = PriceTable.load(path, {"TEST_RAM": measured})
+    assert table.get("TEST_RAM") is not None
+    assert table.get("TEST_RAM").fmv_eur == 85.0

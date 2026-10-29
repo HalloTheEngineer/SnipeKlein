@@ -64,7 +64,8 @@ WANTED_MARKERS = re.compile(
 ACCESSORY_MARKERS = re.compile(
     r"\b(kühler|cooler|lüfter|ventilator|halterung|halter|adapter|kabel|cable|"
     r"pcie|riser|bracket|staubschutz|sticker|schutzfolie|heatsink|"
-    r"waterblock|wasserkühler|rohling|dummy|platzhalter)\b",
+    r"waterblock|wasserkühler|rohling|dummy|platzhalter|"
+    r"netzteil|psu|power\s?supply)\b",
     re.IGNORECASE,
 )
 

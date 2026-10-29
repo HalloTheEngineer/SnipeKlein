@@ -25,6 +25,7 @@
   header .sub { color: var(--muted); font-size: 12px; }
   header .spacer { flex: 1; }
   #status { color: var(--muted); font-size: 12px; }
+  .warn { color: var(--red) !important; }
   .cards { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 20px; }
   .card {
     background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
@@ -131,7 +132,9 @@
 <header>
   <h1>SnipeKlein</h1>
   <span class="sub">decision panel</span>
+  <span class="sub" id="version"></span>
   <span class="spacer"></span>
+  <span class="sub" id="calibration"></span>
   <span id="status">loading…</span>
 </header>
 

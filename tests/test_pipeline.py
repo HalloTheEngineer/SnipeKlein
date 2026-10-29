@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,7 @@ PROPS = {
         "categoryId": 228,
         "price": {"amount": 700, "type": "NEGOTIABLE"},
         "location": "12345 Berlin - Mitte",
-        "formattedCreationDate": "20.10.2026",
+        "formattedCreationDate": datetime.now().strftime("%d.%m.%Y"),
         "localizedAttributes": [
             {"localizedName": "Zustand", "localizedValue": "Sehr Gut"},
             {"localizedName": "Versand", "localizedValue": "Nur Abholung"},
@@ -205,5 +206,36 @@ def test_price_reload_keeps_the_market_calibration(pipeline: Pipeline) -> None:
     result = pipeline.run_cycle(dry_run=True)
     deal = result.deals[0]
     assert deal.valuation.assembly_samples == 10
-    assert deal.valuation.assembly_factor == pytest.approx(1.2)
+    # the measured asking ratio (1.2) converted to a sold price
+    assert deal.valuation.assembly_factor == pytest.approx(1.104)
     assert deal.valuation.price_rank is not None
+
+
+def test_an_old_ad_is_valued_but_never_alerted(
+    pipeline: Pipeline, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A months-old listing is probably sold - record it, never notify."""
+    import snipeklein.pipeline as pipeline_module
+    from snipeklein.store.decisions import DecisionRepo
+
+    original = pipeline_module.parse_listing
+    old_date = (datetime.now(UTC) - timedelta(days=40)).strftime("%d.%m.%Y")
+
+    def parse_old(html: str, url: str, base_url: str):
+        return original(html, url, base_url).model_copy(update={"posted_at": old_date})
+
+    monkeypatch.setattr(pipeline_module, "parse_listing", parse_old)
+    result = pipeline.run_cycle(dry_run=True)
+    assert result.deals == []
+    decision = DecisionRepo(pipeline.conn).get(AD_ID)
+    assert decision is not None
+    assert decision["reason_code"] == "stale_ad"
+
+
+def test_the_embed_shows_how_old_the_ad_is(pipeline: Pipeline) -> None:
+    from snipeklein.notify.templates import build_embed
+
+    result = pipeline.run_cycle(dry_run=True)
+    embed = build_embed(result.deals[0])
+    field = next(field for field in embed["fields"] if "🗓️" in field["name"])
+    assert "Tage online" in field["value"]

@@ -2,10 +2,29 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+def ad_age_days(posted_at: str, today: date | None = None) -> int | None:
+    """Age of a listing in days from the date the detail page shows.
+
+    Kleinanzeigen renders the posting date as ``29.10.2026``.  Returns
+    ``None`` when the string is missing or in an unknown format.
+    """
+    text = (posted_at or "").strip()
+    if not text:
+        return None
+    for fmt in ("%d.%m.%Y", "%d.%m.%y", "%Y-%m-%d"):
+        try:
+            posted = datetime.strptime(text[:10], fmt).date()
+        except ValueError:
+            continue
+        reference = today or datetime.now(UTC).date()
+        return max(0, (reference - posted).days)
+    return None
 
 
 class Band(StrEnum):

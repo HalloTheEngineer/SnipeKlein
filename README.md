@@ -121,11 +121,16 @@ specification is only 30 % known is not informative, so it is dropped instead.
 Configure it with `valuation.near_miss_margin_min_pct` and
 `valuation.near_miss_alerts` in `config.toml`.
 
-**How often it fires:** rarely, because the second hand market for complete
-gaming systems is tight. In the measured sample every valued listing landed
-within +/- 12 % of its FMV, so the 15-30 % window stayed empty. Lower
-`near_miss_margin_min_pct` to 5 if you want to see the borderline cases
-too.
+**How often it fires:** the FMV is the *market* value - the parts' sum times
+the measured assembly factor, converted to a realistic sold price with
+`asking_to_sold_factor` (0.92). A 12 % margin therefore means: 12 % below
+what comparable systems are asking. Expect several alerts on a busy evening,
+not several per day.
+
+Old listings are valued and kept in the panel but never alerted: an ad older
+than `filters.max_alert_age_days` (14) is probably sold already. This also
+keeps a model change from waking up the whole backlog of old triage rejects.
+The embed shows the posting date and the age of the ad.
 
 ### What the bot looks for
 
@@ -394,6 +399,7 @@ Important keys:
 | `ingestion` | `proxy_url` | optional DE/EU proxy |
 | `filters` | `required_ram_generation` | `DDR5` |
 | `filters` | `triage_min_margin_pct` | margin a listing needs to reach before it costs an LLM call |
+| `filters` | `max_alert_age_days` | older listings are valued but never alerted (14, 0 disables) |
 | `valuation` | `min_coverage` | share of a complete system that must be known (0.75) |
 | `valuation` | `actionable_margin_min_pct` / `max_pct` | 12 / 30 |
 | `valuation` | `near_miss_margin_min_pct` | 5 |
@@ -441,7 +447,11 @@ Margin %     = (FMV_net - asking_price) / FMV_net * 100
 * Bands: **actionable** 12-30 %, **near miss** 5-12 %, **extreme** > 30 %,
   everything else is no deal.
 * `assembly_factor` is measured from the used market (see above), not a
-  guessed bundle discount.
+  guessed bundle discount. The harvester records the *asking* ratio; the
+  engine converts it with `asking_to_sold_factor` (0.92), the same basis the
+  component prices use. The fallback (1.0) is never discounted.
+* An ad older than `filters.max_alert_age_days` is valued, recorded and
+  visible in the panel, but not alerted (`stale_ad`).
 
 ### Price table
 

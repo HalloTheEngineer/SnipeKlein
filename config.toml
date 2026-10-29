@@ -70,6 +70,8 @@ triage_min_components = 2
 # model, the ad still goes to the extraction: the description is where the
 # specification usually is.  Set to false to keep the LLM volume minimal.
 modern_platform_tier = true
+# Stale listings (often already sold) are valued but never alerted.
+max_alert_age_days = 14
 
 [storage]
 # Retention for the local database (pruned by `snipeklein prune` and by the

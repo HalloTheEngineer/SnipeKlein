@@ -21,7 +21,7 @@ from .ingestion.detail_parser import DetailParseError, parse_listing
 from .ingestion.queries import build_search_url
 from .ingestion.search_parser import parse_cards
 from .logging_setup import get_logger
-from .models import Band, Deal, Extraction, SearchCard
+from .models import Band, Deal, Extraction, SearchCard, ad_age_days
 from .notify.discord import DiscordError, DiscordNotifier
 from .store.decisions import (
     OUTCOME_ACCEPTED,
@@ -489,6 +489,36 @@ class Pipeline:
                 stage="valuation",
                 reason="the listing has no asking price",
                 reason_code="no_price",
+                detail=detail,
+                price=listing.price,
+            )
+            return
+
+        # An old listing is often sold already.  It is still valued and kept
+        # in the panel, but it must not wake anybody up.  This also keeps the
+        # re-evaluation of the backlog (old triage rejects) from alerting on
+        # months-old ads after a model change.
+        age_days = ad_age_days(listing.posted_at)
+        max_age = self.config.filters.max_alert_age_days
+        if max_age > 0 and age_days is not None and age_days > max_age:
+            result.reject("stale_ad")
+            steps.append(
+                {
+                    "stage": "valuation",
+                    "outcome": "rejected",
+                    "reason": f"ad is {age_days} days old (limit {max_age})",
+                }
+            )
+            self._record_decision(
+                card,
+                steps,
+                outcome=OUTCOME_REJECTED,
+                stage="valuation",
+                reason=(
+                    f"the ad is {age_days} days old - older than {max_age} days, "
+                    "probably sold already"
+                ),
+                reason_code="stale_ad",
                 detail=detail,
                 price=listing.price,
             )

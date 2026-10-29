@@ -63,6 +63,24 @@ function outcomeBadge(outcome, band) {
   return el("span", "badge b-rejected", "rejected");
 }
 
+function renderCalibration(summary) {
+  const versionEl = $("#version");
+  if (versionEl) versionEl.textContent = summary.version ? "v" + summary.version : "";
+  const el = $("#calibration");
+  if (!el) return;
+  const market = summary.market || {};
+  const refresh = summary.refresh || {};
+  if (market.factor == null) {
+    el.textContent = "calibration: none";
+    el.classList.add("warn");
+    return;
+  }
+  const factor = Number(market.factor).toFixed(3);
+  el.textContent = "calibration: " + (market.samples || 0) + " systems · " + factor + "×";
+  el.classList.toggle("warn", Boolean(refresh.stale));
+  el.title = refresh.stale ? "the price/market refresh is stale" : "";
+}
+
 function renderCards(summary) {
   const cards = $("#cards");
   cards.textContent = "";

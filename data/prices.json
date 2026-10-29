@@ -591,12 +591,13 @@
       "id": "NVIDIA_RTX_5070",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 5070",
-      "fmv_eur": 380,
+      "fmv_eur": 650.0,
       "tdp_w": 250,
       "aliases": [
         "rtx 5070",
         "rtx5070"
-      ]
+      ],
+      "market_source": "curated"
     },
     {
       "id": "NVIDIA_RTX_5070_TI",
@@ -632,12 +633,13 @@
       "id": "NVIDIA_RTX_5090_32GB",
       "kind": "gpu",
       "label": "NVIDIA GeForce RTX 5090 32GB",
-      "fmv_eur": 1750,
+      "fmv_eur": 3000.0,
       "tdp_w": 575,
       "aliases": [
         "rtx 5090",
         "rtx5090"
-      ]
+      ],
+      "market_source": "curated"
     },
     {
       "id": "AMD_RX_6600_XT",
@@ -872,7 +874,7 @@
       "id": "NVME_GEN4_2TB",
       "kind": "storage",
       "label": "2 TB NVMe (Gen4)",
-      "fmv_eur": 85,
+      "fmv_eur": 200.0,
       "aliases": [
         "nvme 2tb",
         "2tb nvme",
@@ -1165,7 +1167,7 @@
       "id": "INTEL_I5_9400F",
       "kind": "cpu",
       "label": "Intel Core i5-9400F",
-      "fmv_eur": 85.0,
+      "fmv_eur": 35.0,
       "tdp_w": 65,
       "aliases": [
         "i5-9400f",
@@ -1173,7 +1175,7 @@
         "9400f"
       ],
       "curated_fmv_eur": 85,
-      "market_source": "kleinanzeigen",
+      "market_source": "curated",
       "market_samples": 17,
       "market_observed": "2026-10-21"
     },
