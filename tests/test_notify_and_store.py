@@ -155,3 +155,14 @@ def test_usage_repo_accumulates(tmp_path) -> None:
     assert rows[0]["requests"] == 3
     assert rows[0]["in_tokens"] == 150
     conn.close()
+
+
+def test_usage_repo_counts_every_model_of_the_day(tmp_path) -> None:
+    """Two models used today are two rows - a "today" query must keep both."""
+    conn = _db(tmp_path)
+    repo = UsageRepo(conn)
+    repo.record("primary", requests=10)
+    repo.record("fallback", requests=7)
+    rows = repo.daily(days=1)
+    assert sum(row["requests"] for row in rows) == 17
+    conn.close()

@@ -372,8 +372,12 @@ class UsageRepo:
         )
 
     def daily(self, days: int = 7) -> list[dict[str, Any]]:
+        """Usage of the last ``days`` days, one row per day *and* model."""
+        days = max(1, int(days))
+        cutoff = (datetime.now(UTC) - timedelta(days=days - 1)).date().isoformat()
         rows = self.conn.execute(
-            "SELECT * FROM llm_usage ORDER BY day DESC LIMIT ?", (days,)
+            "SELECT * FROM llm_usage WHERE day >= ? ORDER BY day DESC, model",
+            (cutoff,),
         ).fetchall()
         return [dict(r) for r in rows]
 
