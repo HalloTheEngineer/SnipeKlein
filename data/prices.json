@@ -1345,6 +1345,168 @@
         "microphone",
         "stream mikrofon"
       ]
+    },
+    {
+      "id": "NVIDIA_GTX_1060_6GB",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce GTX 1060 6GB",
+      "fmv_eur": 70.0,
+      "tdp_w": 120,
+      "aliases": [
+        "gtx 1060",
+        "gtx1060",
+        "gtx 1060 6gb",
+        "1060 6gb",
+        "geforce gtx 1060"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_GTX_1070",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce GTX 1070",
+      "fmv_eur": 90.0,
+      "tdp_w": 150,
+      "aliases": [
+        "gtx 1070",
+        "gtx1070",
+        "geforce gtx 1070"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_GTX_1080",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce GTX 1080",
+      "fmv_eur": 130.0,
+      "tdp_w": 180,
+      "aliases": [
+        "gtx 1080",
+        "gtx1080",
+        "geforce gtx 1080"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_GTX_1080_TI",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce GTX 1080 Ti",
+      "fmv_eur": 170.0,
+      "tdp_w": 250,
+      "aliases": [
+        "gtx 1080 ti",
+        "gtx1080ti",
+        "1080 ti",
+        "geforce gtx 1080 ti"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_GTX_1660",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce GTX 1660",
+      "fmv_eur": 110.0,
+      "tdp_w": 120,
+      "aliases": [
+        "gtx 1660",
+        "gtx1660",
+        "geforce gtx 1660"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_GTX_1660_SUPER",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce GTX 1660 Super",
+      "fmv_eur": 130.0,
+      "tdp_w": 125,
+      "aliases": [
+        "gtx 1660 super",
+        "gtx1660super",
+        "gtx 1660s",
+        "1660 super"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_RTX_2060",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 2060",
+      "fmv_eur": 150.0,
+      "tdp_w": 160,
+      "aliases": [
+        "rtx 2060",
+        "rtx2060",
+        "geforce rtx 2060"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_RTX_2070",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 2070",
+      "fmv_eur": 180.0,
+      "tdp_w": 175,
+      "aliases": [
+        "rtx 2070",
+        "rtx2070",
+        "geforce rtx 2070"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_RTX_2080",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 2080",
+      "fmv_eur": 220.0,
+      "tdp_w": 215,
+      "aliases": [
+        "rtx 2080",
+        "rtx2080",
+        "geforce rtx 2080"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "NVIDIA_RTX_2080_SUPER",
+      "kind": "gpu",
+      "label": "NVIDIA GeForce RTX 2080 Super",
+      "fmv_eur": 250.0,
+      "tdp_w": 250,
+      "aliases": [
+        "rtx 2080 super",
+        "rtx2080super",
+        "rtx 2080s",
+        "2080 super"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "AMD_RX_580",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 580",
+      "fmv_eur": 60.0,
+      "tdp_w": 185,
+      "aliases": [
+        "rx 580",
+        "rx580",
+        "radeon rx 580"
+      ],
+      "market_source": "curated"
+    },
+    {
+      "id": "AMD_RX_5700_XT",
+      "kind": "gpu",
+      "label": "AMD Radeon RX 5700 XT",
+      "fmv_eur": 150.0,
+      "tdp_w": 225,
+      "aliases": [
+        "rx 5700 xt",
+        "rx5700xt",
+        "5700 xt",
+        "radeon rx 5700 xt"
+      ],
+      "market_source": "curated"
     }
   ],
   "defect_costs": {

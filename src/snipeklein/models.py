@@ -190,3 +190,4 @@ class Deal(BaseModel):
     valuation: Valuation
     risk: RiskAssessment
     alert_key: str = ""
+    extraction_source: str = ""

@@ -136,6 +136,11 @@ def build_embed(deal: Deal) -> dict:
             "Marktniveau, das ist kein echter Rabatt. Zum Weiterverhandeln "
             "interessant, aber kein Fund."
         )
+    if deal.extraction_source == "fallback":
+        description += (
+            "\n⚠️ Extraktion: Regex-Fallback (LLM nicht erreichbar) – "
+            "die Angaben bitte prüfen."
+        )
     if valuation.price_rank is not None:
         description += f"\n📊 Preisrang p{round(valuation.price_rank)} in dieser Konfiguration"
     if valuation.notes:

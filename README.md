@@ -455,10 +455,12 @@ Margin %     = (FMV_net - asking_price) / FMV_net * 100
 
 ### Price table
 
-`data/prices.json` is the source of truth: 95 components (CPUs, GPUs, RAM,
+`data/prices.json` is the source of truth: 107 components (CPUs, GPUs, RAM,
 storage, boards, PSUs, the case/cooler bundle and the accessories a bundle can
 include) with aliases that are matched
-case- and space-insensitively. It is shipped with the image (`/app/prices.json`)
+case- and space-insensitively.  The GPUs include the older cards that show up
+in DDR5 builds (GTX 1060/1070/1080/1660, RTX 2060/2070/2080, RX 580/5700 XT),
+because people often upgrade the platform and keep the card. It is shipped with the image (`/app/prices.json`)
 and the harvested values are layered on top from the database in the volume.
 
 Every component keeps the value from the specification as `spec_baseline`
@@ -518,6 +520,12 @@ python tools/update_prices_from_harvest.py harvest.json
 * `429` handling: `RetryInfo.retryDelay` is honoured, `quota_exceeded` is
   *not* retried - the bot switches model and, if that fails too, keeps running
   on the deterministic regex extractor until the quota resets.
+* The regex extractor reads labelled specification lines (`Grafikkarte:`,
+  `Prozessor:`, `Arbeitsspeicher:`, `Speicher:`, `Netzteil:`, `Mainboard:`)
+  first and ignores upgrade sentences ("aufrüstbar mit RTX 4070", "ready for").
+  The same spec-line override is applied to the LLM result, so marketing copy
+  cannot replace the installed card.  When the fallback was used, the Discord
+  alert says so (`⚠️ Extraktion: Regex-Fallback`).
 * Usage is tracked in SQLite: `snipeklein usage`.
 
 Cost at the observed volume (a handful of extractions per day): far below

@@ -25,7 +25,10 @@ EXTRACTION_SCHEMA: dict[str, Any] = {
         },
         "gpu_model": {
             "type": ["string", "null"],
-            "description": "Exact GPU model, e.g. 'NVIDIA GeForce RTX 4070'.",
+            "description": (
+                "The installed graphics card, e.g. 'NVIDIA GeForce RTX 4070'. "
+                "Upgrade suggestions ('RTX 4070 ready', 'aufruestbar mit') are not installed."
+            ),
         },
         "ram_generation": {
             "type": "string",
@@ -86,6 +89,11 @@ den Wert auf null (oder UNKNOWN bei ram_generation).
 Regeln:
 - is_complete_system = true nur, wenn ein vollstaendiger, einsatzbereiter \
 Computer verkauft wird (keine Einzelkomponente, kein Wunschgesuch).
+- Nur verbaute Hardware zaehlt. Formulierungen wie "aufruestbar", "kompatibel",
+  "z. B. RTX 4070", "ready for", "optional" beschreiben Aufruestoptionen und
+  sind KEINE verbaute Komponente. Gibt es eine Zeile "Grafikkarte: ...",
+  "Prozessor: ...", "Arbeitsspeicher: ..." oder "Speicher: ...", gilt deren
+  Wert - auch wenn im Werbetext eine staerkere Karte genannt wird.
 - ram_generation: DDR5, DDR4 oder UNKNOWN. Nur ausdruecklich genannte \
 RAM-Angaben zaehlen. Wenn die Anzeige die RAM-Generation nicht nennt, \
 immer UNKNOWN - niemals aus dem verbauten Board oder Prozessor ableiten.

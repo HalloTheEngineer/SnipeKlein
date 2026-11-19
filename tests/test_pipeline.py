@@ -239,3 +239,15 @@ def test_the_embed_shows_how_old_the_ad_is(pipeline: Pipeline) -> None:
     embed = build_embed(result.deals[0])
     field = next(field for field in embed["fields"] if "🗓️" in field["name"])
     assert "Tage online" in field["value"]
+
+
+def test_the_embed_marks_a_regex_fallback_extraction(pipeline: Pipeline) -> None:
+    from snipeklein.notify.templates import build_embed
+
+    result = pipeline.run_cycle(dry_run=True)
+    deal = result.deals[0]
+    assert deal.extraction_source == "fallback"  # no API key in the test config
+    assert "Regex-Fallback" in build_embed(deal)["description"]
+
+    llm_deal = deal.model_copy(update={"extraction_source": "llm"})
+    assert "Regex-Fallback" not in build_embed(llm_deal)["description"]

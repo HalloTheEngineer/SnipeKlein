@@ -362,6 +362,8 @@ class Pipeline:
         outcome = self.extractor.extract(listing.title, listing.description)
         detail["extraction"] = outcome.extraction.model_dump()
         detail["extraction_source"] = outcome.source
+        if outcome.overrides:
+            detail["spec_overrides"] = list(outcome.overrides)
         if not outcome.ok:
             steps.append(
                 {
@@ -524,7 +526,13 @@ class Pipeline:
             )
             return
 
-        deal = Deal(listing=listing, extraction=outcome.extraction, valuation=valuation, risk=risk)
+        deal = Deal(
+            listing=listing,
+            extraction=outcome.extraction,
+            valuation=valuation,
+            risk=risk,
+            extraction_source=outcome.source,
+        )
         result.deals.append(deal)
 
         if is_near_miss:
