@@ -57,6 +57,10 @@ cp .env.example .env      # fill in GEMINI_API_KEY and DISCORD_WEBHOOK_URL
 ```ini
 GEMINI_API_KEY=...
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+# optional: ping a Discord user on deal / extreme-outlier alerts
+# (raw ID, <@ID> or role <@&ID>; empty disables the ping)
+DEAL_PING_TARGET=
+OUTLIER_PING_TARGET=
 # optional: German residential proxy so the crawler egresses from DACH
 # PROXY_URL=http://user:pass@host:port
 ```
@@ -76,6 +80,8 @@ environment:
   TZ: Europe/Berlin
   GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
   DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL:-}"
+  DEAL_PING_TARGET: "${DEAL_PING_TARGET:-}"
+  OUTLIER_PING_TARGET: "${OUTLIER_PING_TARGET:-}"
   PROXY_URL: "${PROXY_URL:-}"
 ```
 
@@ -114,6 +120,11 @@ a green or yellow alert always means a real discount.
 | actionable | 12-30 % | green/yellow, a deal |
 | near miss | 5-12 % | blue, "kein Deal - zum Verhandeln interessant" |
 | - | < 5 % | nothing |
+
+Optional pings: set `DEAL_PING_TARGET` to a Discord user/role ID and an
+actionable deal mentions it; set `OUTLIER_PING_TARGET` for extreme outliers.
+The values may be a raw ID, `<@ID>` or `<@&ID>`; empty/unset means no ping.
+There is no fallback between the two targets, and a near miss never pings.
 
 The near miss obeys the same coverage guard as a deal: a listing whose
 specification is only 30 % known is not informative, so it is dropped instead.
@@ -321,7 +332,9 @@ container keeps its own. `snipeklein health` prints the resolved path.
 3. **Environment** tab → add `GEMINI_API_KEY` and `DISCORD_WEBHOOK_URL`.
    Dokploy writes them into a `.env` next to the compose file and passes it
    with `--env-file`. Leave "create .env file" enabled (it is the default).
-   Optionally add `PROXY_URL` for a German residential proxy.
+   Optionally add `DEAL_PING_TARGET` / `OUTLIER_PING_TARGET` for alerts that
+   mention a Discord user or role, and `PROXY_URL` for a German residential
+   proxy.
 4. **General** → **Deploy**. No domain and no ports are needed: this is a
    worker that only talks to kleinanzeigen.de, the Gemini API and the Discord
    webhook.

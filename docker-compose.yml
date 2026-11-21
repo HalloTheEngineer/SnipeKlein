@@ -21,6 +21,9 @@ x-snipeklein: &snipeklein
     TZ: Europe/Berlin
     GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
     DISCORD_WEBHOOK_URL: "${DISCORD_WEBHOOK_URL:-}"
+    # Optional Discord IDs mentioned on the matching alert (empty = no ping).
+    DEAL_PING_TARGET: "${DEAL_PING_TARGET:-}"
+    OUTLIER_PING_TARGET: "${OUTLIER_PING_TARGET:-}"
     # Optional German/EU residential proxy (see spec 3.1)
     PROXY_URL: "${PROXY_URL:-}"
   volumes:

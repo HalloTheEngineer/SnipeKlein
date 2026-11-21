@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 
+from ..logging_setup import get_logger
 from ..models import (
     Band,
     Deal,
     RiskLevel,
     ShippingMode,
     ad_age_days,
+)
+
+log = get_logger("snipeklein.notify.templates")
+
+# A Discord user/role mention from the environment: either a raw ID or an
+# already formatted mention.  Discord mentions require the numeric ID.
+_TARGET_RE = re.compile(
+    r"^(?:<@(?P<role>&)?!?(?P<wrapped>\d{15,25})>|@?(?P<plain>\d{15,25}))$"
 )
 
 COLOR_GREEN = 0x2ECC71
@@ -174,8 +184,36 @@ def build_embed(deal: Deal) -> dict:
     return embed
 
 
-def build_payload(deal: Deal, username: str = "SnipeKlein") -> dict:
-    return {"username": username, "embeds": [build_embed(deal)]}
+def _target_mention(target: str) -> tuple[str, dict[str, list[str]]] | None:
+    """Turn a configured ping target into a mention plus allowed mentions.
+
+    An invalid target is ignored instead of failing the alert: a typo in the
+    environment must never suppress a deal notification.
+    """
+    raw = target.strip()
+    if not raw:
+        return None
+    match = _TARGET_RE.match(raw)
+    if match is None:
+        log.warning("ignoring invalid Discord ping target %r", target)
+        return None
+    target_id = match.group("wrapped") or match.group("plain") or ""
+    if match.group("role"):
+        return f"<@&{target_id}>", {"parse": [], "roles": [target_id]}
+    return f"<@{target_id}>", {"parse": [], "users": [target_id]}
+
+
+def build_payload(
+    deal: Deal, username: str = "SnipeKlein", ping_target: str = ""
+) -> dict:
+    """Build the webhook payload, optionally mentioning a Discord user/role."""
+    payload: dict = {"username": username, "embeds": [build_embed(deal)]}
+    mention = _target_mention(ping_target)
+    if mention is not None:
+        content, allowed_mentions = mention
+        payload["content"] = content
+        payload["allowed_mentions"] = allowed_mentions
+    return payload
 
 
 def payload_size(payload: dict) -> int:

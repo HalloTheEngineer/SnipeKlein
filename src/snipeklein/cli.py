@@ -17,7 +17,12 @@ from .ingestion.client import KleinanzeigenClient
 from .ingestion.detail_parser import parse_listing
 from .logging_setup import get_logger, setup_logging
 from .models import Band
-from .notify.discord import DiscordError, DiscordNotifier, post_message
+from .notify.discord import (
+    DiscordError,
+    DiscordNotifier,
+    alert_payload,
+    post_message,
+)
 from .pipeline import Pipeline
 from .schedule import next_daily_run, parse_hhmm
 from .store.backup import create_backup
@@ -634,7 +639,6 @@ def cmd_test_alert(args: argparse.Namespace) -> int:
         ShippingMode,
         Valuation,
     )
-    from .notify.templates import build_payload
     from .store.repo import AlertRepo
 
     config = _config(args)
@@ -686,7 +690,7 @@ def cmd_test_alert(args: argparse.Namespace) -> int:
         risk = RiskAssessment(score=0, level=RiskLevel.GREEN)
         deal = Deal(listing=listing, extraction=extraction, valuation=valuation, risk=risk)
 
-        payload = build_payload(deal, config.notify.username)
+        payload = alert_payload(deal, config.notify)
         if args.dry_run:
             _print_json(payload)
             return 0

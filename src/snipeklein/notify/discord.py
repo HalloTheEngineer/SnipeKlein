@@ -11,7 +11,7 @@ import httpx
 
 from ..config import NotifyConfig
 from ..logging_setup import get_logger
-from ..models import Deal
+from ..models import Band, Deal
 from ..store.repo import AlertRepo
 from .templates import build_payload
 
@@ -20,6 +20,22 @@ log = get_logger("snipeklein.notify.discord")
 
 class DiscordError(RuntimeError):
     pass
+
+
+def alert_payload(deal: Deal, config: NotifyConfig) -> dict:
+    """Build an alert payload and attach the ping that matches its band.
+
+    A deal pings ``DEAL_PING_TARGET``; an extreme outlier pings
+    ``OUTLIER_PING_TARGET``.  There is no fallback between the two and a
+    near miss (not a deal) never pings.
+    """
+    if deal.valuation.band is Band.EXTREME:
+        target = config.outlier_ping_target()
+    elif deal.valuation.band is Band.ACTIONABLE:
+        target = config.deal_ping_target()
+    else:
+        target = ""
+    return build_payload(deal, config.username, ping_target=target)
 
 
 class DiscordNotifier:
@@ -50,7 +66,7 @@ class DiscordNotifier:
                 f"webhook url missing - set {self.config.webhook_url_env} in .env"
             )
 
-        payload = build_payload(deal, self.config.username)
+        payload = alert_payload(deal, self.config)
         payload_hash = hashlib.sha256(
             json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
         ).hexdigest()

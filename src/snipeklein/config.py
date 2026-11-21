@@ -138,9 +138,19 @@ class NotifyConfig:
     webhook_url_env: str = "DISCORD_WEBHOOK_URL"
     username: str = "SnipeKlein"
     repeat_on_change: bool = False
+    # Optional Discord IDs that are mentioned on the matching alert.  An
+    # empty value disables the ping; the alert itself is still sent.
+    deal_ping_target_env: str = "DEAL_PING_TARGET"
+    outlier_ping_target_env: str = "OUTLIER_PING_TARGET"
 
     def webhook_url(self) -> str:
         return os.environ.get(self.webhook_url_env, "")
+
+    def deal_ping_target(self) -> str:
+        return os.environ.get(self.deal_ping_target_env, "").strip()
+
+    def outlier_ping_target(self) -> str:
+        return os.environ.get(self.outlier_ping_target_env, "").strip()
 
 
 @dataclass(frozen=True)

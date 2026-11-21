@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timedelta
 
+from snipeklein.config import NotifyConfig
 from snipeklein.models import (
     Band,
     Deal,
@@ -15,6 +16,7 @@ from snipeklein.models import (
     ShippingMode,
     Valuation,
 )
+from snipeklein.notify.discord import alert_payload
 from snipeklein.notify.templates import (
     COLOR_GREEN,
     COLOR_RED,
@@ -100,6 +102,100 @@ def test_red_border_for_an_extreme_outlier() -> None:
 def test_payload_shape() -> None:
     payload = build_payload(_deal(), "SnipeKlein")
     assert payload["username"] == "SnipeKlein"
+    assert len(payload["embeds"]) == 1
+    assert "content" not in payload
+
+
+def _notify_config() -> NotifyConfig:
+    return NotifyConfig(webhook_url_env="MISSING_HOOK_FOR_TESTS")
+
+
+def _clear_ping_targets(monkeypatch) -> None:
+    monkeypatch.delenv("DEAL_PING_TARGET", raising=False)
+    monkeypatch.delenv("OUTLIER_PING_TARGET", raising=False)
+
+
+def test_deal_alert_pings_the_configured_user(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "123456789012345678")
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert payload["content"] == "<@123456789012345678>"
+    assert payload["allowed_mentions"] == {
+        "parse": [],
+        "users": ["123456789012345678"],
+    }
+
+
+def test_outlier_alert_uses_only_the_outlier_target(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "111111111111111111")
+    monkeypatch.setenv("OUTLIER_PING_TARGET", "222222222222222222")
+
+    payload = alert_payload(
+        _deal(margin=70.0, band=Band.EXTREME), _notify_config()
+    )
+
+    assert payload["content"] == "<@222222222222222222>"
+    assert payload["allowed_mentions"]["users"] == ["222222222222222222"]
+
+
+def test_extreme_outlier_does_not_fall_back_to_the_deal_target(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "111111111111111111")
+
+    payload = alert_payload(
+        _deal(margin=70.0, band=Band.EXTREME), _notify_config()
+    )
+
+    assert "content" not in payload
+    assert "allowed_mentions" not in payload
+
+
+def test_near_miss_never_pings(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "111111111111111111")
+
+    payload = alert_payload(
+        _deal(margin=8.0, band=Band.NEAR_MISS), _notify_config()
+    )
+
+    assert "content" not in payload
+
+
+def test_empty_ping_target_leaves_the_payload_unchanged(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "   ")
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert "content" not in payload
+    assert "allowed_mentions" not in payload
+
+
+def test_ping_target_accepts_a_role_mention(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("OUTLIER_PING_TARGET", "<@&333333333333333333>")
+
+    payload = alert_payload(
+        _deal(margin=70.0, band=Band.EXTREME), _notify_config()
+    )
+
+    assert payload["content"] == "<@&333333333333333333>"
+    assert payload["allowed_mentions"] == {
+        "parse": [],
+        "roles": ["333333333333333333"],
+    }
+
+
+def test_invalid_ping_target_is_ignored(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "not-a-discord-id")
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert "content" not in payload
     assert len(payload["embeds"]) == 1
 
 
