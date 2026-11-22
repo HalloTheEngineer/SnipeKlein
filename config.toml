@@ -116,9 +116,10 @@ webhook_url_env = "DISCORD_WEBHOOK_URL"
 username = "SnipeKlein"
 # Re-send an alert when the computed payload changed (e.g. refreshed FMV table).
 repeat_on_change = false
-# Optional mentions on alerts. The values (Discord IDs) come from the
-# environment; an empty value disables the ping. Deal pings cover the
-# actionable band, outlier pings the extreme band - there is no fallback.
+# Optional mentions on alerts. The values come from the environment; a raw
+# Discord ID, mention, or everyone/here works, an empty value disables the
+# ping. Deal pings cover the actionable band, outlier pings the extreme band -
+# there is no fallback.
 deal_ping_target_env = "DEAL_PING_TARGET"
 outlier_ping_target_env = "OUTLIER_PING_TARGET"
 

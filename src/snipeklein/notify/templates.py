@@ -22,6 +22,14 @@ _TARGET_RE = re.compile(
     r"^(?:<@(?P<role>&)?!?(?P<wrapped>\d{15,25})>|@?(?P<plain>\d{15,25}))$"
 )
 
+# Broad mentions are explicit opt-ins, never the default.
+_BROADCAST_TARGETS = {
+    "everyone": "@everyone",
+    "@everyone": "@everyone",
+    "here": "@here",
+    "@here": "@here",
+}
+
 COLOR_GREEN = 0x2ECC71
 COLOR_YELLOW = 0xF1C40F
 COLOR_RED = 0xE74C3C
@@ -187,12 +195,16 @@ def build_embed(deal: Deal) -> dict:
 def _target_mention(target: str) -> tuple[str, dict[str, list[str]]] | None:
     """Turn a configured ping target into a mention plus allowed mentions.
 
-    An invalid target is ignored instead of failing the alert: a typo in the
-    environment must never suppress a deal notification.
+    ``everyone`` / ``here`` are explicit broad-mention opt-ins.  An invalid
+    target is ignored instead of failing the alert: a typo in the environment
+    must never suppress a deal notification.
     """
     raw = target.strip()
     if not raw:
         return None
+    broadcast = _BROADCAST_TARGETS.get(raw.lower())
+    if broadcast is not None:
+        return broadcast, {"parse": ["everyone"]}
     match = _TARGET_RE.match(raw)
     if match is None:
         log.warning("ignoring invalid Discord ping target %r", target)

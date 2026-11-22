@@ -27,7 +27,8 @@ def alert_payload(deal: Deal, config: NotifyConfig) -> dict:
 
     A deal pings ``DEAL_PING_TARGET``; an extreme outlier pings
     ``OUTLIER_PING_TARGET``.  There is no fallback between the two and a
-    near miss (not a deal) never pings.
+    near miss (not a deal) never pings.  ``everyone`` / ``here`` are allowed
+    as explicit broad-mention targets.
     """
     if deal.valuation.band is Band.EXTREME:
         target = config.outlier_ping_target()

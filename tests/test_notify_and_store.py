@@ -189,6 +189,28 @@ def test_ping_target_accepts_a_role_mention(monkeypatch) -> None:
     }
 
 
+def test_everyone_ping_is_an_explicit_opt_in(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "@everyone")
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert payload["content"] == "@everyone"
+    assert payload["allowed_mentions"] == {"parse": ["everyone"]}
+
+
+def test_here_ping_is_supported(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("OUTLIER_PING_TARGET", "HERE")
+
+    payload = alert_payload(
+        _deal(margin=70.0, band=Band.EXTREME), _notify_config()
+    )
+
+    assert payload["content"] == "@here"
+    assert payload["allowed_mentions"] == {"parse": ["everyone"]}
+
+
 def test_invalid_ping_target_is_ignored(monkeypatch) -> None:
     _clear_ping_targets(monkeypatch)
     monkeypatch.setenv("DEAL_PING_TARGET", "not-a-discord-id")
