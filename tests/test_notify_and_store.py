@@ -221,6 +221,99 @@ def test_invalid_ping_target_is_ignored(monkeypatch) -> None:
     assert len(payload["embeds"]) == 1
 
 
+def test_multiple_user_ping_targets(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv(
+        "DEAL_PING_TARGET", "111111111111111111, 222222222222222222"
+    )
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert payload["content"] == "<@111111111111111111> <@222222222222222222>"
+    assert payload["allowed_mentions"] == {
+        "parse": [],
+        "users": ["111111111111111111", "222222222222222222"],
+    }
+
+
+def test_multiple_ping_targets_can_mix_users_roles_and_broad_mentions(
+    monkeypatch,
+) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv(
+        "OUTLIER_PING_TARGET",
+        "everyone, 111111111111111111, <@&333333333333333333>",
+    )
+
+    payload = alert_payload(
+        _deal(margin=70.0, band=Band.EXTREME), _notify_config()
+    )
+
+    assert payload["content"] == (
+        "@everyone <@111111111111111111> <@&333333333333333333>"
+    )
+    assert payload["allowed_mentions"] == {
+        "parse": ["everyone"],
+        "users": ["111111111111111111"],
+        "roles": ["333333333333333333"],
+    }
+
+
+def test_ping_target_list_ignores_blanks_and_duplicates(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv(
+        "DEAL_PING_TARGET",
+        " 111111111111111111, ,<@111111111111111111>,222222222222222222,"
+        "222222222222222222, ",
+    )
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert payload["content"] == "<@111111111111111111> <@222222222222222222>"
+    assert payload["allowed_mentions"]["users"] == [
+        "111111111111111111",
+        "222222222222222222",
+    ]
+
+
+def test_invalid_entries_do_not_discard_valid_ping_targets(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv(
+        "DEAL_PING_TARGET",
+        "111111111111111111, not-a-discord-id, 222222222222222222",
+    )
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert payload["content"] == "<@111111111111111111> <@222222222222222222>"
+    assert payload["allowed_mentions"]["users"] == [
+        "111111111111111111",
+        "222222222222222222",
+    ]
+
+
+def test_all_invalid_ping_targets_send_without_a_ping(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    monkeypatch.setenv("DEAL_PING_TARGET", "not-a-discord-id, , nope")
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert "content" not in payload
+    assert "allowed_mentions" not in payload
+
+
+def test_ping_target_content_is_capped(monkeypatch) -> None:
+    _clear_ping_targets(monkeypatch)
+    targets = ",".join(str(100000000000000000 + index) for index in range(100))
+    monkeypatch.setenv("DEAL_PING_TARGET", targets)
+
+    payload = alert_payload(_deal(), _notify_config())
+
+    assert len(payload["content"]) <= 1900
+    assert len(payload["allowed_mentions"]["users"]) == payload["content"].count("<@")
+    assert len(payload["allowed_mentions"]["users"]) < 100
+
+
 def _db(tmp_path) -> sqlite3.Connection:
     conn = connect(tmp_path / "test.db")
     migrate(conn)

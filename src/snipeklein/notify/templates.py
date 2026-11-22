@@ -30,6 +30,10 @@ _BROADCAST_TARGETS = {
     "@here": "@here",
 }
 
+# Discord rejects a message content longer than 2000 characters.  Leave a
+# little room for the separators and any future prefix.
+MAX_PING_CONTENT = 1900
+
 COLOR_GREEN = 0x2ECC71
 COLOR_YELLOW = 0xF1C40F
 COLOR_RED = 0xE74C3C
@@ -192,35 +196,84 @@ def build_embed(deal: Deal) -> dict:
     return embed
 
 
-def _target_mention(target: str) -> tuple[str, dict[str, list[str]]] | None:
-    """Turn a configured ping target into a mention plus allowed mentions.
+def _target_mention(target: str) -> tuple[str, str, str] | None:
+    """Parse one ping target into ``(mention, kind, key)``.
 
-    ``everyone`` / ``here`` are explicit broad-mention opt-ins.  An invalid
-    target is ignored instead of failing the alert: a typo in the environment
-    must never suppress a deal notification.
+    ``kind`` is ``users``, ``roles`` or ``broad``; ``key`` is the numeric ID or
+    the normalized broad mention.  An invalid target is ignored instead of
+    failing the alert: a typo in the environment must never suppress a deal
+    notification.
     """
     raw = target.strip()
     if not raw:
         return None
     broadcast = _BROADCAST_TARGETS.get(raw.lower())
     if broadcast is not None:
-        return broadcast, {"parse": ["everyone"]}
+        return broadcast, "broad", broadcast
     match = _TARGET_RE.match(raw)
     if match is None:
         log.warning("ignoring invalid Discord ping target %r", target)
         return None
     target_id = match.group("wrapped") or match.group("plain") or ""
     if match.group("role"):
-        return f"<@&{target_id}>", {"parse": [], "roles": [target_id]}
-    return f"<@{target_id}>", {"parse": [], "users": [target_id]}
+        return f"<@&{target_id}>", "roles", target_id
+    return f"<@{target_id}>", "users", target_id
+
+
+def _target_mentions(value: str) -> tuple[str, dict[str, list[str]]] | None:
+    """Turn a comma-separated list of ping targets into content + mentions.
+
+    Empty entries and duplicates are ignored.  A valid entry is still used
+    when another entry in the list is malformed.  ``everyone`` / ``here`` are
+    explicit broad-mention opt-ins.
+    """
+    mentions: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    users: list[str] = []
+    roles: list[str] = []
+    broad = False
+    content_length = 0
+
+    for entry in value.split(","):
+        parsed = _target_mention(entry)
+        if parsed is None:
+            continue
+        mention, kind, key = parsed
+        identity = (kind, key)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        separator = 1 if mentions else 0
+        if content_length + separator + len(mention) > MAX_PING_CONTENT:
+            log.warning(
+                "ping target list is too long - ignoring the remaining targets"
+            )
+            break
+        mentions.append(mention)
+        content_length += separator + len(mention)
+        if kind == "users":
+            users.append(key)
+        elif kind == "roles":
+            roles.append(key)
+        else:
+            broad = True
+
+    if not mentions:
+        return None
+    allowed_mentions: dict[str, list[str]] = {"parse": ["everyone"] if broad else []}
+    if users:
+        allowed_mentions["users"] = users
+    if roles:
+        allowed_mentions["roles"] = roles
+    return " ".join(mentions), allowed_mentions
 
 
 def build_payload(
     deal: Deal, username: str = "SnipeKlein", ping_target: str = ""
 ) -> dict:
-    """Build the webhook payload, optionally mentioning a Discord user/role."""
+    """Build the webhook payload, optionally mentioning Discord users/roles."""
     payload: dict = {"username": username, "embeds": [build_embed(deal)]}
-    mention = _target_mention(ping_target)
+    mention = _target_mentions(ping_target)
     if mention is not None:
         content, allowed_mentions = mention
         payload["content"] = content
