@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import base64
+import json
 import sqlite3
 import threading
 import urllib.error
 import urllib.request
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -160,6 +162,8 @@ def test_panel_serves_the_ui(config: Config) -> None:
         status, body = _request(server, "/", auth=True)
         assert status == 200
         assert b"SnipeKlein" in body
+        assert b'data-view="statistics"' in body
+        assert b'id="stats-grid"' in body
     finally:
         _stop_server(server, thread)
 
@@ -273,3 +277,301 @@ def test_prices_endpoint_has_the_market_distribution(config: Config) -> None:
             assert key in rows[0]
     finally:
         data.close()
+
+
+def _seed_statistics(config: Config) -> None:
+    """Add one alerted deal, one near miss and the related tables."""
+    today = datetime.now(UTC)
+    posted_today = today.strftime("%d.%m.%Y")
+    posted_old = (today - timedelta(days=20)).strftime("%d.%m.%Y")
+    conn = connect(config.db_path)
+    repo = DecisionRepo(conn)
+    repo.record(
+        Decision(
+            ad_id="stats-deal",
+            outcome="alerted",
+            stage="alert",
+            reason="alert sent: 32.0% margin, risk green",
+            reason_code="alerted",
+            query_tag="tag-a",
+            title="Gaming PC RTX 4070",
+            url="https://example.invalid/stats-deal",
+            price=800.0,
+            card_price=750.0,
+            location="12345 Berlin",
+            detail={
+                "extraction_source": "llm",
+                "extraction": {
+                    "gpu_model": "NVIDIA GeForce RTX 4070",
+                    "cpu_model": "AMD Ryzen 7 7800X3D",
+                    "ram_capacity_gb": 32,
+                },
+                "valuation": {"margin_pct": 32.0, "band": "actionable"},
+                "risk": {
+                    "level": "green",
+                    "score": 10,
+                    "signals": [{"label": "shipping only", "points": 10}],
+                },
+            },
+        )
+    )
+    repo.record(
+        Decision(
+            ad_id="stats-near",
+            outcome="near_miss",
+            stage="valuation",
+            reason="near miss: 8.0% below market, not a deal",
+            reason_code="near_miss",
+            query_tag="tag-a",
+            title="Gaming PC RTX 3070",
+            url="https://example.invalid/stats-near",
+            price=900.0,
+            card_price=900.0,
+            location="20095 Hamburg",
+            detail={
+                "extraction_source": "fallback",
+                "extraction": {
+                    "gpu_model": "NVIDIA GeForce RTX 3070",
+                    "cpu_model": "AMD Ryzen 5 5600X",
+                    "ram_capacity_gb": 16,
+                },
+                "valuation": {"margin_pct": 8.0, "band": "near_miss"},
+                "risk": {
+                    "level": "yellow",
+                    "score": 20,
+                    "signals": [{"label": "no rating badges", "points": 20}],
+                },
+            },
+        )
+    )
+    conn.execute(
+        """
+        INSERT INTO extractions (
+            ad_id, fmv_gross, fmv_net, margin_pct, band, risk_score, risk_level,
+            coverage, components, defects, model, prompt_version, created_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            "stats-deal",
+            1100.0,
+            1056.0,
+            32.0,
+            "actionable",
+            10,
+            "green",
+            0.95,
+            "[]",
+            "[]",
+            "test-model",
+            "test",
+            today.isoformat(),
+        ),
+    )
+    conn.execute(
+        """
+        INSERT INTO extractions (
+            ad_id, fmv_gross, fmv_net, margin_pct, band, risk_score, risk_level,
+            coverage, components, defects, model, prompt_version, created_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """,
+        (
+            "stats-near",
+            1000.0,
+            972.0,
+            8.0,
+            "near_miss",
+            20,
+            "yellow",
+            0.8,
+            "[]",
+            "[]",
+            "test-model",
+            "test",
+            today.isoformat(),
+        ),
+    )
+    for ad_id, title, price, city, plz, shipping, seller, posted, badges in (
+        (
+            "stats-deal",
+            "Gaming PC RTX 4070",
+            800.0,
+            "Berlin",
+            "12345",
+            "pickup",
+            "Seller A",
+            posted_today,
+            '["TOP"]',
+        ),
+        (
+            "stats-near",
+            "Gaming PC RTX 3070",
+            900.0,
+            "Hamburg",
+            "20095",
+            "shipping",
+            "Seller B",
+            posted_old,
+            "[]",
+        ),
+    ):
+        conn.execute(
+            """
+            INSERT INTO listings (
+                ad_id, url, title, description, price, is_negotiable, original_price,
+                plz, city, region, category_id, posted_at, fetched_at, condition,
+                condition_code, shipping_mode, seller_name, seller_since, seller_badges,
+                seller_type, seller_active_ads, ad_type, raw_json
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                ad_id,
+                f"https://example.invalid/{ad_id}",
+                title,
+                "",
+                price,
+                0,
+                None,
+                plz,
+                city,
+                "Testland",
+                228,
+                posted,
+                today.isoformat(),
+                "Sehr Gut",
+                "like_new",
+                shipping,
+                seller,
+                "01.01.2020",
+                badges,
+                "Privater Nutzer",
+                2,
+                "",
+                "{}",
+            ),
+        )
+    conn.execute(
+        """
+        INSERT INTO alerts (
+            ad_id, band, margin_pct, risk_level, payload_hash, webhook_key, status, sent_at
+        ) VALUES (?,?,?,?,?,?,?,?)
+        """,
+        ("stats-deal", "actionable", 32.0, "green", "hash", "key", "sent", today.isoformat()),
+    )
+    conn.execute(
+        """
+        INSERT INTO runs (
+            started_at, finished_at, queries, ads_seen, ads_new, ads_evaluated,
+            alerts_sent, errors
+        ) VALUES (?,?,?,?,?,?,?,?)
+        """,
+        (
+            today.isoformat(),
+            (today + timedelta(seconds=30)).isoformat(),
+            '["tag-a"]',
+            4,
+            2,
+            1,
+            1,
+            1,
+        ),
+    )
+    conn.execute(
+        """
+        INSERT INTO llm_usage (
+            day, model, requests, in_tokens, out_tokens, errors, quota_429
+        ) VALUES (?,?,?,?,?,?,?)
+        """,
+        (today.date().isoformat(), "test-model", 3, 100, 20, 1, 0),
+    )
+    conn.close()
+
+
+def test_statistics_contains_core_and_deep_dive_data(config: Config) -> None:
+    _seed_statistics(config)
+    data = PanelData(config)
+    try:
+        stats = data.statistics(days=0, use_cache=False)
+    finally:
+        data.close()
+
+    assert stats["range"]["cohort"] == 3
+    assert stats["cards"]["ads"] == 3
+    assert stats["cards"]["valued"] == 2
+    assert stats["cards"]["alerts"] == 1
+    assert stats["cards"]["alert_rate_pct"] == 50.0
+    assert stats["cards"]["fallback_share_pct"] == 50.0
+    funnel = stats["funnel"]
+    assert funnel[0]["count"] == 3
+    assert all(funnel[i]["count"] >= funnel[i + 1]["count"] for i in range(len(funnel) - 1))
+    assert stats["margin"]["count"] == 2
+    assert sum(bin["count"] for bin in stats["margin"]["bins"]) == 2
+    assert {level["key"] for level in stats["risk"]["levels"]} == {
+        "green",
+        "yellow",
+        "red",
+    }
+    assert {signal["label"] for signal in stats["risk"]["signals"]} >= {
+        "shipping only",
+        "no rating badges",
+    }
+    assert stats["hardware"]["gpus"][0]["count"] >= 1
+    assert stats["listing_mix"]["count"] == 2
+    assert stats["alerts"]["count"] == 1
+    assert stats["alerts"]["median_latency_s"] is not None
+    assert stats["quality"]["with_valuation"] == 2
+    assert stats["quality"]["coverage_bins"]
+    assert stats["quality"]["price_freshness"]["changed"] == 1
+    assert stats["age"]["bins"]
+    assert stats["sellers"]["distinct"] == 2
+    assert {row["city"] for row in stats["geography"]["cities"]} == {"Berlin", "Hamburg"}
+    assert stats["queries"][0]["tag"] == "tag-a"
+    assert stats["market"]["components"] > 0
+    assert stats["ops"]["cycles"] == 1
+    assert stats["ops"]["llm_requests"] == 3
+
+
+def test_statistics_filters_by_query_tag(config: Config) -> None:
+    _seed_statistics(config)
+    data = PanelData(config)
+    try:
+        stats = data.statistics(days=7, query_tag="tag-a", use_cache=False)
+    finally:
+        data.close()
+
+    assert stats["cards"]["ads"] == 2
+    assert stats["cards"]["valued"] == 2
+    assert stats["cards"]["alerts"] == 1
+    assert stats["range"]["since"] is not None
+
+
+def test_statistics_survives_malformed_detail_json(config: Config) -> None:
+    _seed_statistics(config)
+    conn = connect(config.db_path)
+    conn.execute(
+        "UPDATE ad_decisions SET detail = 'not-json' WHERE ad_id = 'stats-near'"
+    )
+    conn.close()
+
+    data = PanelData(config)
+    try:
+        stats = data.statistics(days=0, use_cache=False)
+    finally:
+        data.close()
+
+    assert stats["cards"]["ads"] == 3
+    assert stats["quality"]["fallback_share_pct"] == 0.0
+    assert stats["hardware"]["gpus"]
+
+
+def test_statistics_http_endpoint(config: Config) -> None:
+    _seed_statistics(config)
+    server, thread = _start_server(config)
+    try:
+        status, body = _request(server, "/api/statistics?days=7&query_tag=tag-a", auth=True)
+    finally:
+        _stop_server(server, thread)
+
+    assert status == 200
+    payload = json.loads(body)
+    assert payload["cards"]["ads"] == 2
+    assert payload["queries"][0]["tag"] == "tag-a"

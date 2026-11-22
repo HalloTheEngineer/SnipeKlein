@@ -6,6 +6,7 @@ import json
 import sqlite3
 import statistics
 import threading
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -52,6 +53,8 @@ class PanelData:
     def __init__(self, config: Config) -> None:
         self.config = config
         self._local = threading.local()
+        self._stats_cache: dict[tuple[int, str], tuple[float, dict[str, Any]]] = {}
+        self._stats_lock = threading.Lock()
 
     @property
     def conn(self) -> sqlite3.Connection:
@@ -233,6 +236,41 @@ class PanelData:
             "SELECT * FROM runs ORDER BY id DESC LIMIT ?", (limit,)
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def statistics(
+        self,
+        days: int = 7,
+        query_tag: str = "",
+        *,
+        use_cache: bool = True,
+        cache_ttl_s: float = 45.0,
+    ) -> dict[str, Any]:
+        """Aggregated statistics for the Statistics tab.
+
+        The aggregate is cached briefly because the browser refreshes the
+        panel periodically and the JSON/histogram queries are heavier than a
+        single-page listing.
+        """
+        from .stats import build_statistics
+
+        key = (days, query_tag)
+        now = time.monotonic()
+        if use_cache:
+            with self._stats_lock:
+                cached = self._stats_cache.get(key)
+            if cached is not None and now - cached[0] < cache_ttl_s:
+                return cached[1]
+        payload = build_statistics(
+            self.conn, self.config, days=days, query_tag=query_tag
+        )
+        if use_cache:
+            with self._stats_lock:
+                self._stats_cache[key] = (now, payload)
+        return payload
+
+    def clear_statistics_cache(self) -> None:
+        with self._stats_lock:
+            self._stats_cache.clear()
 
     def health(self) -> dict[str, Any]:
         # The panel runs in its own container and cannot see the bot's

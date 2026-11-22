@@ -126,6 +126,100 @@
   .spark .bar.last { background: var(--accent); }
   table.mini { font-size: 12px; margin-top: 6px; }
   table.mini th, table.mini td { padding: 3px 8px; }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px; padding: 0 20px 30px;
+  }
+  .stats-section {
+    grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px;
+    margin: 8px 2px -2px;
+  }
+  .stats-section h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--muted); margin: 0;
+  }
+  .stats-section .muted { font-size: 12px; }
+  .panel-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 13px 15px 15px; min-width: 0;
+  }
+  .panel-card.wide { grid-column: 1 / -1; }
+  .panel-head { margin-bottom: 10px; }
+  .panel-title { font-size: 13px; font-weight: 650; }
+  .panel-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .panel-empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
+  .stats-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .stats-col { min-width: 0; }
+  .mini-title {
+    color: var(--muted); font-size: 10px; text-transform: uppercase;
+    letter-spacing: .7px; margin-bottom: 6px;
+  }
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .bar-row {
+    display: grid; grid-template-columns: minmax(90px, 1.5fr) minmax(80px, 2fr) auto;
+    gap: 9px; align-items: center;
+  }
+  .bar-label { min-width: 0; }
+  .bar-name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 12px;
+  }
+  .bar-sub { color: var(--muted); font-size: 10px; }
+  .bar-track {
+    height: 9px; background: #121722; border: 1px solid #222a38;
+    border-radius: 5px; overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; min-width: 2px; background: var(--accent);
+    border-radius: 4px; transition: width .2s ease;
+  }
+  .bar-value { color: var(--muted); font-size: 11px; text-align: right; white-space: nowrap; }
+  .stack-wrap { margin-bottom: 12px; }
+  .stack {
+    display: flex; height: 13px; border-radius: 5px; overflow: hidden;
+    border: 1px solid #222a38; background: #121722;
+  }
+  .stack-seg { min-width: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 7px; }
+  .legend-item { color: var(--muted); font-size: 11px; }
+  .swatch {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+    margin-right: 5px; vertical-align: 1px;
+  }
+  .hist-wrap { margin-top: 4px; }
+  .hist { position: relative; display: flex; align-items: flex-end; gap: 2px;
+          height: 100px; border-bottom: 1px solid var(--line); padding-bottom: 1px; }
+  .hist .bar { flex: 1; background: #2f4a6b; border-radius: 2px 2px 0 0; min-height: 2px; }
+  .hist .bar:hover { background: var(--accent); }
+  .hist-marker {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background: #d29922; opacity: .85; pointer-events: none;
+  }
+  .hist-marker span {
+    position: absolute; top: -15px; left: 2px; color: #d29922;
+    font-size: 9px; white-space: nowrap;
+  }
+  .hist-axis { display: flex; justify-content: space-between; color: var(--muted);
+               font-size: 10px; margin-top: 3px; }
+  .line-wrap { margin-top: 2px; }
+  .line-chart { width: 100%; height: auto; display: block; }
+  .line-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }
+  .line-legend .legend-item { font-size: 11px; }
+  .metric-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 12px; }
+  .metric { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+            padding: 7px 9px; min-width: 0; }
+  .metric .k { color: var(--muted); font-size: 10px; text-transform: uppercase;
+               letter-spacing: .5px; }
+  .metric .v { font-size: 15px; font-weight: 600; }
+  .metric .x { color: var(--muted); font-size: 10px; }
+  table.stats-table { table-layout: fixed; }
+  table.stats-table th, table.stats-table td {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (max-width: 900px) {
+    .stats-grid, .stats-cols { grid-template-columns: 1fr; }
+    .panel-card.wide { grid-column: auto; }
+  }
 </style>
 </head>
 <body>
@@ -140,6 +234,7 @@
 
 <nav class="tabs">
   <button class="tab active" data-view="listings">Listings</button>
+  <button class="tab" data-view="statistics">Statistics</button>
   <button class="tab" data-view="prices">Prices</button>
 </nav>
 
@@ -178,6 +273,17 @@
   <button id="reload">reload</button>
 </div>
 
+<div class="filters" id="filters-statistics" hidden>
+  <select id="stat-days">
+    <option value="1">last 24 h</option>
+    <option value="7" selected>last 7 days</option>
+    <option value="30">last 30 days</option>
+    <option value="0">all retained</option>
+  </select>
+  <select id="stat-query"><option value="">any query</option></select>
+  <button id="stat-reload">reload</button>
+</div>
+
 <div id="view-listings">
   <table>
     <thead>
@@ -198,6 +304,10 @@
     <span id="pageinfo"></span>
     <button id="next">older →</button>
   </div>
+</div>
+
+<div id="view-statistics" hidden>
+  <div class="stats-grid" id="stats-grid"></div>
 </div>
 
 <div id="view-prices" hidden>

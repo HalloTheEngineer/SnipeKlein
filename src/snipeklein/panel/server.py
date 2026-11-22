@@ -140,6 +140,14 @@ class PanelHandler(BaseHTTPRequestHandler):
         if path == "/api/summary":
             self._json(self.data.summary())
             return
+        if path == "/api/statistics":
+            self._json(
+                self.data.statistics(
+                    days=_int(query.get("days"), 7, 0, 3650),
+                    query_tag=query.get("query_tag", ""),
+                )
+            )
+            return
         if path == "/api/ads":
             self._json(
                 self.data.ads(

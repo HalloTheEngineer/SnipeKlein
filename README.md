@@ -235,6 +235,45 @@ against - and, per component, the market distribution it measured: the
 sampled asking prices, their median and the **price rank** of a listing
 within that distribution ("p8 - cheaper than 92 % of the observed systems").
 
+### The statistics tab
+
+The **Statistics** tab aggregates the retained decision, listing, valuation,
+alert and run data. It has a range filter (24 h / 7 days / 30 days / all
+retained) and a query-tag filter. The top cards show unique ads, ads that
+reached valuation, alerts, alert rate, median margin, potential alert margin,
+median coverage and the share of regex-fallback extractions.
+
+The charts evaluate:
+
+* **Funnel** - how many ads survive prefilter, triage, detail, extraction,
+  the DDR5 target check and the deal band;
+* **Outcome and band mix** - rejected / near miss / actionable / extreme;
+* **Activity** - new ads, valuations, alerts, cycles and errors per day;
+* **Rejection reasons** - the top filter reason codes by stage;
+* **Margin distribution** - histogram with the 5 / 12 / 30 % thresholds;
+* **Risk** - risk-level mix, score histogram and the signals driving it;
+* **Hardware** - top GPUs/CPUs and RAM sizes, with median margin;
+* **Listing and seller mix** - shipping, condition, seller type, badges,
+  negotiable/Pro share;
+* **Alert quality** - alerts by band/risk and latency from first sighting.
+
+A **Deep dive** section adds query performance (ads, valuations, alerts and
+median margin per search tag), card-vs-detail price freshness, ad-age
+distribution, seller concentration, top cities/regions, market/calibration
+health, valuation coverage/data quality and LLM/cycle operations.
+
+The aggregates come from `/api/statistics?days=7&query_tag=...`. Breakdowns
+use the cohort of ads whose `first_seen` falls inside the range; the activity
+timeline uses each event's own timestamp. The endpoint is cached for 45 s and
+the tab refreshes at most once a minute, because the JSON/histogram queries
+are heavier than the listing pages.
+
+Limits: the numbers are only as deep as the retention settings (14 days for
+decisions, 30 days for listings/extractions) and there is no click, sale or
+conversion tracking, so "margin" and "potential" are theoretical. The
+rejection trend in `filter_stats` counts events, not unique ads, so the tab
+uses the current decision rows for the rejection breakdown.
+
 ### The decision panel
 
 Every ad the bot looks at is recorded with the decision it made and why - the
@@ -265,8 +304,8 @@ snipeklein panel --port 8137          # http://127.0.0.1:8137
   `max_decision_rows` (100 000), pruned by the bot's maintenance run and by
   `snipeklein prune`.
 
-Endpoints: `/` (the UI), `/api/summary`, `/api/ads`, `/api/ads/<ad_id>`,
-`/api/alerts`, `/api/prices`, `/api/runs`, `/api/health`.
+Endpoints: `/` (the UI), `/api/summary`, `/api/statistics`, `/api/ads`,
+`/api/ads/<ad_id>`, `/api/alerts`, `/api/prices`, `/api/runs`, `/api/health`.
 
 On the VPS the panel is a compose service; give it a domain in Dokploy
 (service `panel`, port 8137) and set `PANEL_USER` / `PANEL_PASSWORD` in the

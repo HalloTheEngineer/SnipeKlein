@@ -4,7 +4,40 @@
 "use strict";
 
 const $ = (sel) => document.querySelector(sel);
-const state = { limit: 50, offset: 0, total: 0, view: "listings", prices: [] };
+const state = {
+  limit: 50, offset: 0, total: 0, view: "listings", prices: [],
+  stats: null, statsLoadedAt: 0,
+};
+
+const KEY_COLORS = {
+  rejected: "#6e7681", accepted: "#3fb950", alerted: "#d29922",
+  near_miss: "#58a6ff", not_target: "#a5b4fc",
+  extreme: "#f85149", actionable: "#3fb950", not_a_deal: "#6e7681",
+  green: "#3fb950", yellow: "#d29922", red: "#f85149",
+  pickup: "#3fb950", shipping: "#d29922", unknown: "#6e7681",
+  pro: "#a5b4fc", private: "#6e7681", yes: "#3fb950", no: "#6e7681",
+  with_badges: "#3fb950", without_badges: "#6e7681",
+};
+const SERIES_COLORS = {
+  ads: "#6ea8fe", valued: "#3fb950", alerts: "#d29922",
+  cycles: "#a5b4fc", errors: "#f85149",
+  requests: "#6ea8fe", tokens: "#3fb950", quota_429: "#f85149",
+};
+const LABELS = {
+  rejected: "rejected", accepted: "accepted (no alert)", alerted: "alerted",
+  near_miss: "near miss", not_target: "not a DDR5 target",
+  extreme: "extreme", actionable: "actionable", not_a_deal: "not a deal",
+  green: "green", yellow: "yellow", red: "red",
+  pickup: "pickup", shipping: "shipping", unknown: "unknown",
+  pro: "commercial", private: "private", yes: "yes", no: "no",
+  with_badges: "with badges", without_badges: "without badges",
+  ads: "ads", valued: "valued", alerts: "alerts", cycles: "cycles", errors: "errors",
+  requests: "requests", tokens: "tokens", quota_429: "429s",
+};
+const COLOR_ORDER = [
+  "#6ea8fe", "#3fb950", "#d29922", "#f85149", "#a5b4fc",
+  "#58a6ff", "#f0883e", "#c8a2ff",
+];
 
 function el(tag, cls, text) {
   const node = document.createElement(tag);
@@ -48,6 +81,300 @@ function fmtTime(value) {
 function fmtEur(value) {
   if (value === null || value === undefined) return "-";
   return Number(value).toLocaleString("de-DE", { maximumFractionDigits: 0 }) + " €";
+}
+
+function fmtNum(value) {
+  if (value === null || value === undefined) return "-";
+  return Number(value).toLocaleString("de-DE", { maximumFractionDigits: 0 });
+}
+
+function fmtPct(value, digits = 1) {
+  if (value === null || value === undefined) return "-";
+  return Number(value).toFixed(digits) + " %";
+}
+
+function fmtRatio(value, digits = 0) {
+  if (value === null || value === undefined) return "-";
+  return (Number(value) * 100).toFixed(digits) + " %";
+}
+
+function fmtSeconds(value) {
+  if (value === null || value === undefined) return "-";
+  const seconds = Number(value);
+  if (seconds < 90) return Math.round(seconds) + " s";
+  if (seconds < 5400) return Math.round(seconds / 60) + " min";
+  return (seconds / 3600).toFixed(1) + " h";
+}
+
+function fmtAxis(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  if (Math.abs(number) >= 10000) return (number / 1000).toFixed(0) + "k";
+  if (Math.abs(number) >= 1000) return (number / 1000).toFixed(1) + "k";
+  return String(Math.round(number * 100) / 100);
+}
+
+function labelFor(key) {
+  return LABELS[key] || String(key || "unknown");
+}
+
+function colorFor(key, index) {
+  return KEY_COLORS[key] || COLOR_ORDER[index % COLOR_ORDER.length];
+}
+
+function svgEl(tag, attrs) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [key, value] of Object.entries(attrs || {})) node.setAttribute(key, value);
+  return node;
+}
+
+function emptyNode(text) {
+  return el("div", "panel-empty", text || "no data yet");
+}
+
+function statsSection(grid, title, subtitle) {
+  const head = el("div", "stats-section");
+  head.appendChild(el("h2", null, title));
+  if (subtitle) head.appendChild(el("span", "muted", subtitle));
+  grid.appendChild(head);
+}
+
+function statsPanel(grid, title, subtitle, body, wide) {
+  const box = el("div", "panel-card" + (wide ? " wide" : ""));
+  const head = el("div", "panel-head");
+  head.appendChild(el("div", "panel-title", title));
+  if (subtitle) head.appendChild(el("div", "panel-sub", subtitle));
+  box.appendChild(head);
+  box.appendChild(body || emptyNode());
+  grid.appendChild(box);
+}
+
+function statsColumns(...nodes) {
+  const wrap = el("div", "stats-cols");
+  for (const node of nodes) {
+    const col = el("div", "stats-col");
+    col.appendChild(node);
+    wrap.appendChild(col);
+  }
+  return wrap;
+}
+
+function labeledBlock(title, body) {
+  const wrap = el("div");
+  wrap.appendChild(el("div", "mini-title", title));
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function metricList(items) {
+  const wrap = el("div", "metric-list");
+  for (const item of items || []) {
+    const box = el("div", "metric");
+    box.appendChild(el("div", "k", item.label));
+    box.appendChild(el("div", "v", item.value));
+    if (item.sub) box.appendChild(el("div", "x", item.sub));
+    wrap.appendChild(box);
+  }
+  return wrap;
+}
+
+function makeBars(items, options) {
+  const settings = options || {};
+  const rows = (items || []).filter((item) => item && Number(item.value ?? item.count ?? 0) > 0);
+  if (!rows.length) return emptyNode(settings.empty);
+  const max = Math.max(...rows.map((item) => Number(item.value ?? item.count ?? 0)), 1);
+  const wrap = el("div", "bars");
+  for (const item of rows) {
+    const value = Number(item.value ?? item.count ?? 0);
+    const row = el("div", "bar-row");
+    const label = el("div", "bar-label");
+    label.appendChild(el("div", "bar-name", item.label ?? labelFor(item.key)));
+    const sub = typeof settings.sub === "function" ? settings.sub(item) : item.sub;
+    if (sub) label.appendChild(el("div", "bar-sub", sub));
+    const track = el("div", "bar-track");
+    const fill = el("div", "bar-fill");
+    fill.style.width = Math.max(2, (value / max) * 100) + "%";
+    fill.style.background = item.color || settings.color || colorFor(item.key);
+    fill.title = (item.label ?? labelFor(item.key)) + ": " + value;
+    track.appendChild(fill);
+    const text = settings.format
+      ? settings.format(item)
+      : fmtNum(value);
+    row.appendChild(label);
+    row.appendChild(track);
+    row.appendChild(el("div", "bar-value", text));
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+function makeStacked(items, options) {
+  const settings = options || {};
+  const rows = (items || []).filter((item) => item && Number(item.count || 0) > 0);
+  const total = rows.reduce((sum, item) => sum + Number(item.count || 0), 0);
+  if (!rows.length || !total) return emptyNode(settings.empty);
+  const wrap = el("div", "stack-wrap");
+  const bar = el("div", "stack");
+  for (const item of rows) {
+    const segment = el("div", "stack-seg");
+    segment.style.width = (Number(item.count) / total) * 100 + "%";
+    segment.style.background = item.color || colorFor(item.key);
+    segment.title = labelFor(item.key) + ": " + fmtNum(item.count) + " (" + fmtPct(item.pct, 0) + ")";
+    bar.appendChild(segment);
+  }
+  wrap.appendChild(bar);
+  const legend = el("div", "legend");
+  for (const item of rows) {
+    const entry = el("span", "legend-item");
+    const swatch = el("span", "swatch");
+    swatch.style.background = item.color || colorFor(item.key);
+    entry.appendChild(swatch);
+    entry.appendChild(document.createTextNode(labelFor(item.key) + " " + fmtNum(item.count)));
+    legend.appendChild(entry);
+  }
+  wrap.appendChild(legend);
+  return wrap;
+}
+
+function makeHistogram(bins, options) {
+  const settings = options || {};
+  const rows = (bins || []).filter((bin) => bin);
+  if (!rows.length) return emptyNode(settings.empty);
+  const max = Math.max(...rows.map((bin) => Number(bin.count || 0)), 1);
+  const low = Number(rows[0].from);
+  const high = Number(rows[rows.length - 1].to);
+  const wrap = el("div", "hist-wrap");
+  const chart = el("div", "hist");
+  for (const bin of rows) {
+    const bar = el("div", "bar");
+    bar.style.height = Math.max(2, (Number(bin.count || 0) / max) * 92) + "px";
+    const axis = settings.axisFormat || fmtAxis;
+    bar.title = axis(bin.from) + " – " + axis(bin.to) + ": " + fmtNum(bin.count);
+    chart.appendChild(bar);
+  }
+  for (const marker of settings.markers || []) {
+    if (marker.value === null || marker.value === undefined) continue;
+    if (!Number.isFinite(Number(marker.value)) || high <= low) continue;
+    const position = ((Number(marker.value) - low) / (high - low)) * 100;
+    if (position < 0 || position > 100) continue;
+    const line = el("div", "hist-marker");
+    line.style.left = position + "%";
+    line.appendChild(el("span", null, marker.label));
+    chart.appendChild(line);
+  }
+  wrap.appendChild(chart);
+  const axis = el("div", "hist-axis");
+  const axisFormat = settings.axisFormat || fmtAxis;
+  axis.appendChild(el("span", null, axisFormat(low)));
+  axis.appendChild(el("span", null, axisFormat(high)));
+  wrap.appendChild(axis);
+  return wrap;
+}
+
+function makeLineChart(series, keys) {
+  const rows = (series || []).filter((row) => row);
+  const usableKeys = (keys || []).filter(Boolean);
+  if (!rows.length || !usableKeys.length) return emptyNode("no daily data yet");
+  const width = 640, height = 200;
+  const pad = { left: 42, right: 12, top: 12, bottom: 24 };
+  const plotWidth = width - pad.left - pad.right;
+  const plotHeight = height - pad.top - pad.bottom;
+  const max = Math.max(
+    1,
+    ...rows.flatMap((row) => usableKeys.map((key) => Number(row[key]) || 0)),
+  );
+  const xFor = (index) => pad.left + (rows.length === 1 ? plotWidth / 2 : (index / (rows.length - 1)) * plotWidth);
+  const yFor = (value) => pad.top + plotHeight - (Number(value) / max) * plotHeight;
+  const svg = svgEl("svg", {
+    viewBox: "0 0 " + width + " " + height,
+    class: "line-chart",
+    role: "img",
+    "aria-label": usableKeys.join(", ") + " over time",
+  });
+
+  for (let step = 0; step <= 4; step += 1) {
+    const value = max * (1 - step / 4);
+    const y = pad.top + (step / 4) * plotHeight;
+    svg.appendChild(svgEl("line", {
+      x1: pad.left, x2: width - pad.right, y1: y, y2: y,
+      stroke: "#2a3140", "stroke-width": "1",
+    }));
+    const label = svgEl("text", {
+      x: pad.left - 6, y: y + 4, fill: "#98a2b3",
+      "font-size": "10", "text-anchor": "end",
+    });
+    label.textContent = fmtAxis(value);
+    svg.appendChild(label);
+  }
+
+  const labelIndexes = new Set([0, Math.floor((rows.length - 1) / 2), rows.length - 1]);
+  for (const index of labelIndexes) {
+    const label = svgEl("text", {
+      x: xFor(index), y: height - 5, fill: "#98a2b3",
+      "font-size": "10", "text-anchor": "middle",
+    });
+    label.textContent = String(rows[index].day || "").slice(5);
+    svg.appendChild(label);
+  }
+
+  for (const key of usableKeys) {
+    const color = SERIES_COLORS[key] || colorFor(key);
+    const points = rows.map((row, index) => xFor(index) + "," + yFor(row[key] || 0));
+    svg.appendChild(svgEl("polyline", {
+      points: points.join(" "), fill: "none", stroke: color,
+      "stroke-width": "2", "stroke-linejoin": "round", "stroke-linecap": "round",
+    }));
+    rows.forEach((row, index) => {
+      const point = svgEl("circle", {
+        cx: xFor(index), cy: yFor(row[key] || 0), r: "2.5", fill: color,
+      });
+      const title = svgEl("title");
+      title.textContent = String(row.day || "") + " · " + key + ": " + fmtNum(row[key] || 0);
+      point.appendChild(title);
+      svg.appendChild(point);
+    });
+  }
+
+  const wrap = el("div", "line-wrap");
+  wrap.appendChild(svg);
+  const legend = el("div", "line-legend");
+  for (const key of usableKeys) {
+    const item = el("span", "legend-item");
+    const swatch = el("span", "swatch");
+    swatch.style.background = SERIES_COLORS[key] || colorFor(key);
+    item.appendChild(swatch);
+    item.appendChild(document.createTextNode(labelFor(key)));
+    legend.appendChild(item);
+  }
+  wrap.appendChild(legend);
+  return wrap;
+}
+
+function makeTable(items, columns) {
+  if (!items || !items.length) return emptyNode("no rows yet");
+  const table = el("table", "mini stats-table");
+  const head = el("tr");
+  for (const column of columns) {
+    head.appendChild(el("th", column.align === "num" ? "num" : null, column.label));
+  }
+  table.appendChild(head);
+  for (const item of items) {
+    const row = el("tr");
+    for (const column of columns) {
+      const value = column.format ? column.format(item) : item[column.key];
+      row.appendChild(el("td", column.align === "num" ? "num" : null, value ?? "-"));
+    }
+    table.appendChild(row);
+  }
+  return table;
+}
+
+function withLabels(items) {
+  return (items || []).map((item, index) => ({
+    ...item,
+    label: labelFor(item.key),
+    color: item.color || colorFor(item.key, index),
+  }));
 }
 
 function valuationOf(ad) {
@@ -104,13 +431,17 @@ function renderCards(summary) {
   card("watchdog", alerting, watchdog.last_alert
     ? "last alarm " + fmtTime(new Date(watchdog.last_alert * 1000).toISOString())
     : "no alarm yet");
+}
 
-  const select = $("#query_tag");
-  const current = select.value;
-  select.textContent = "";
-  select.appendChild(new Option("any query", ""));
-  for (const tag of summary.queries || []) select.appendChild(new Option(tag, tag));
-  select.value = current;
+function renderQueryOptions(summary) {
+  for (const selector of ["#query_tag", "#stat-query"]) {
+    const select = $(selector);
+    const current = select.value;
+    select.textContent = "";
+    select.appendChild(new Option("any query", ""));
+    for (const tag of summary.queries || []) select.appendChild(new Option(tag, tag));
+    select.value = current;
+  }
 }
 
 function renderRows(payload) {
@@ -450,13 +781,311 @@ function closeDrawer() {
   $("#scrim").classList.remove("open");
 }
 
-async function refresh() {
+function renderStatsCards(stats) {
+  const cards = stats.cards || {};
+  $("#cards").textContent = "";
+  card("ads", fmtNum(cards.ads || 0), "unique in range");
+  card("valued", fmtNum(cards.valued || 0), "reached valuation");
+  card("alerts", fmtNum(cards.alerts || 0), "discord alerts");
+  card("alert rate", fmtPct(cards.alert_rate_pct), "of valued ads");
+  card("median margin", fmtPct(cards.median_margin_pct), "below market");
+  card("potential", fmtEur(cards.potential_margin_eur), "alerted margin");
+  card("coverage", fmtPct(cards.median_coverage_pct, 0), "median");
+  card("fallback", fmtPct(cards.fallback_share_pct, 0), "regex extraction");
+}
+
+function renderStats(stats) {
+  renderStatsCards(stats);
+  const grid = $("#stats-grid");
+  grid.textContent = "";
+  const range = stats.range || {};
+  const days = Number(range.days || 0);
+  const period = days === 0 ? "all retained data" : days === 1 ? "last 24 h" : "last " + days + " days";
+  const cohort = fmtNum(range.cohort || 0);
+  const margin = stats.margin || {};
+  const risk = stats.risk || {};
+  const hardware = stats.hardware || {};
+  const mix = stats.listing_mix || {};
+  const alerts = stats.alerts || {};
+  const quality = stats.quality || {};
+  const market = stats.market || {};
+  const ops = stats.ops || {};
+
+  statsSection(grid, "Core", period + " · " + cohort + " unique ads");
+  statsPanel(
+    grid,
+    "Decision funnel",
+    "furthest stage reached by each ad",
+    makeBars(stats.funnel, {
+      format: (item) => fmtNum(item.count) + " · " + fmtPct(item.pct, 0),
+    }),
+  );
+  statsPanel(
+    grid,
+    "Outcome & band mix",
+    "current decision state and valuation band",
+    statsColumns(
+      labeledBlock("outcome", makeStacked(withLabels(stats.outcomes))),
+      labeledBlock("valuation band", makeStacked(withLabels(stats.bands))),
+    ),
+  );
+  statsPanel(
+    grid,
+    "Activity timeline",
+    "daily events; errors and cycles are global operations",
+    makeLineChart(stats.series, ["ads", "valued", "alerts", "errors"]),
+    true,
+  );
+  statsPanel(
+    grid,
+    "Rejection reasons",
+    "share of rejected ads by filter reason",
+    makeBars((stats.rejections || []).map((item) => ({ ...item, label: item.code })), {
+      sub: (item) => item.stage,
+      format: (item) => fmtNum(item.count) + " · " + fmtPct(item.pct, 0),
+    }),
+  );
+  statsPanel(
+    grid,
+    "Margin distribution",
+    "n " + fmtNum(margin.count || 0) +
+      " · P25 " + fmtPct(margin.p25) +
+      " · median " + fmtPct(margin.median) +
+      " · P75 " + fmtPct(margin.p75),
+    makeHistogram(margin.bins, {
+      markers: [
+        { value: 5, label: "5 %" },
+        { value: 12, label: "12 %" },
+        { value: 30, label: "30 %" },
+        { value: margin.median, label: "median" },
+      ],
+    }),
+  );
+  statsPanel(
+    grid,
+    "Risk profile",
+    "risk level of valued ads and score distribution",
+    statsColumns(
+      labeledBlock("risk level", makeStacked(withLabels(risk.levels))),
+      labeledBlock(
+        "risk score",
+        makeHistogram(risk.score_bins, { axisFormat: fmtAxis }),
+      ),
+    ),
+    true,
+  );
+  statsPanel(
+    grid,
+    "Top risk signals",
+    "what drives the risk score",
+    makeBars(risk.signals, { format: (item) => fmtNum(item.count) }),
+  );
+  const hardwareBars = (rows) => makeBars(
+    (rows || []).map((row) => ({
+      ...row,
+      label: row.label || row.key,
+      sub: row.median_margin_pct !== null && row.median_margin_pct !== undefined
+        ? "margin " + fmtPct(row.median_margin_pct) +
+          (row.median_asking_eur !== null && row.median_asking_eur !== undefined
+            ? " · " + fmtEur(row.median_asking_eur)
+            : "")
+        : null,
+    })),
+    { format: (item) => fmtNum(item.count) },
+  );
+  statsPanel(
+    grid,
+    "Hardware segments",
+    "top extracted models and RAM sizes",
+    statsColumns(
+      labeledBlock("GPUs", hardwareBars(hardware.gpus)),
+      labeledBlock("CPUs", hardwareBars(hardware.cpus)),
+      labeledBlock("RAM", makeBars(
+        (hardware.ram || []).map((row) => ({ ...row, label: row.label || row.key })),
+        { format: (item) => fmtNum(item.count) },
+      )),
+    ),
+    true,
+  );
+  statsPanel(
+    grid,
+    "Listing & seller mix",
+    "detail-page metadata; only ads that reached the detail page",
+    statsColumns(
+      labeledBlock("shipping", makeStacked(withLabels(mix.shipping))),
+      labeledBlock("seller type", makeStacked(withLabels(mix.seller_type))),
+      labeledBlock("condition", makeStacked(withLabels(mix.condition))),
+      labeledBlock("badges", makeStacked(withLabels(mix.badges))),
+      labeledBlock("negotiable", makeStacked(withLabels(mix.negotiable))),
+      labeledBlock("account type", makeStacked(withLabels(mix.pro))),
+    ),
+    true,
+  );
+  statsPanel(
+    grid,
+    "Alert quality",
+    "alerts by band and risk, latency from first seen",
+    statsColumns(
+      labeledBlock("alert band", makeStacked(withLabels(alerts.by_band))),
+      labeledBlock("alert risk", makeStacked(withLabels(alerts.by_risk))),
+      metricList([
+        { label: "alerts", value: fmtNum(alerts.count || 0) },
+        { label: "median margin", value: fmtPct(alerts.median_margin_pct) },
+        { label: "median latency", value: fmtSeconds(alerts.median_latency_s) },
+      ]),
+    ),
+    true,
+  );
+  statsPanel(
+    grid,
+    "Data quality",
+    "valuation coverage and missing joins",
+    statsColumns(
+      metricList([
+        { label: "valued", value: fmtNum(quality.with_valuation || 0) },
+        { label: "missing listing", value: fmtNum(quality.missing_listing || 0) },
+        { label: "missing extraction", value: fmtNum(quality.missing_extraction || 0) },
+        { label: "fallback share", value: fmtPct(quality.fallback_share_pct), sub: "regex extraction" },
+      ]),
+      labeledBlock(
+        "coverage",
+        makeHistogram(quality.coverage_bins, {
+          axisFormat: (value) => fmtRatio(value, 0),
+        }),
+      ),
+    ),
+    true,
+  );
+
+  statsSection(grid, "Deep dive", "v2 analyses from the same cohort");
+  statsPanel(
+    grid,
+    "Query performance",
+    "which searches find ads, valuations and alerts",
+    makeTable(stats.queries, [
+      { key: "tag", label: "query" },
+      { key: "ads", label: "ads", align: "num" },
+      { key: "valued", label: "valued", align: "num" },
+      { key: "alerts", label: "alerts", align: "num" },
+      { key: "alert_rate_pct", label: "alert rate", align: "num", format: (item) => fmtPct(item.alert_rate_pct) },
+      { key: "median_margin_pct", label: "median margin", align: "num", format: (item) => fmtPct(item.median_margin_pct) },
+    ]),
+    true,
+  );
+  const freshness = quality.price_freshness || {};
+  statsPanel(
+    grid,
+    "Price freshness",
+    "search-card price vs. the seller's current price",
+    metricList([
+      { label: "price pairs", value: fmtNum(freshness.with_both_prices || 0) },
+      { label: "card ≠ detail", value: fmtNum(freshness.changed || 0), sub: fmtPct(freshness.changed_share_pct) },
+      { label: "median delta", value: fmtEur(freshness.median_delta_eur) },
+    ]),
+  );
+  const age = stats.age || {};
+  statsPanel(
+    grid,
+    "Ad age",
+    "age at first sighting, from the detail page",
+    statsColumns(
+      makeBars((age.bins || []).map((bin) => ({ ...bin, label: bin.key })), {
+        format: (item) => fmtNum(item.count),
+      }),
+      metricList([
+        { label: "median alerted age", value: age.median_alert_age_days === null || age.median_alert_age_days === undefined ? "-" : fmtNum(age.median_alert_age_days) + " d" },
+        { label: "stale share", value: fmtPct(age.stale_share_pct), sub: fmtNum(age.known || 0) + " known ages" },
+      ]),
+    ),
+    true,
+  );
+  statsPanel(
+    grid,
+    "Seller concentration",
+    "sellers with more than one detail-page listing",
+    statsColumns(
+      makeTable((stats.sellers || {}).top, [
+        { key: "seller", label: "seller" },
+        { key: "ads", label: "ads", align: "num" },
+      ]),
+      metricList([
+        { label: "distinct sellers", value: fmtNum((stats.sellers || {}).distinct || 0) },
+        { label: "multi-listing", value: fmtNum((stats.sellers || {}).multi || 0) },
+      ]),
+    ),
+    true,
+  );
+  const geography = stats.geography || {};
+  statsPanel(
+    grid,
+    "Geography",
+    "top cities and regions by listing count",
+    statsColumns(
+      makeTable((geography.cities || []).map((row) => ({ ...row, margin: fmtPct(row.median_margin_pct) })), [
+        { key: "city", label: "city" },
+        { key: "count", label: "ads", align: "num" },
+        { key: "margin", label: "median margin", align: "num" },
+      ]),
+      makeTable((geography.regions || []).map((row) => ({ ...row, margin: fmtPct(row.median_margin_pct) })), [
+        { key: "region", label: "region" },
+        { key: "count", label: "ads", align: "num" },
+        { key: "margin", label: "median margin", align: "num" },
+      ]),
+    ),
+    true,
+  );
+  const calibration = market.calibration || {};
+  statsPanel(
+    grid,
+    "Market health",
+    "component table and complete-system calibration",
+    metricList([
+      { label: "components", value: fmtNum(market.components || 0), sub: fmtNum(market.measured || 0) + " measured · " + fmtNum(market.estimated || 0) + " estimates" },
+      { label: "stale components", value: fmtNum(market.stale_components || 0), sub: "older than " + fmtNum(market.stale_after_days || 0) + " d" },
+      { label: "calibration", value: calibration.factor === null || calibration.factor === undefined ? "uncalibrated" : Number(calibration.factor).toFixed(3) + "×", sub: fmtNum(calibration.samples || 0) + " systems" },
+      { label: "market samples", value: fmtNum(market.systems || 0), sub: "price observations " + fmtNum(market.observations || 0) },
+    ]),
+  );
+  statsPanel(
+    grid,
+    "LLM & operations",
+    "requests, tokens and cycle health",
+    statsColumns(
+      makeLineChart(ops.llm, ["requests", "errors", "quota_429"]),
+      metricList([
+        { label: "cycles", value: fmtNum(ops.cycles || 0), sub: fmtNum(ops.error_cycles || 0) + " with errors" },
+        { label: "cycle median", value: fmtSeconds(ops.cycle_median_s) },
+        { label: "LLM requests", value: fmtNum(ops.llm_requests || 0) },
+        { label: "LLM tokens", value: fmtNum(ops.llm_tokens || 0) },
+        { label: "LLM errors", value: fmtNum(ops.llm_errors || 0), sub: fmtNum(ops.llm_quota_429 || 0) + " × 429" },
+        { label: "ads seen", value: fmtNum(ops.ads_seen || 0), sub: fmtNum(ops.ads_new || 0) + " new · " + fmtNum(ops.ads_evaluated || 0) + " evaluated" },
+      ]),
+    ),
+    true,
+  );
+}
+
+async function refresh(forceStats = false) {
   try {
     const summary = await api("/api/summary");
-    renderCards(summary);
+    renderCalibration(summary);
+    renderQueryOptions(summary);
     if (state.view === "listings") {
+      renderCards(summary);
       const payload = await api("/api/ads", Object.assign({ limit: state.limit, offset: state.offset }, filters()));
       renderRows(payload);
+    } else if (state.view === "statistics") {
+      if (!forceStats && Date.now() - state.statsLoadedAt < 60000) {
+        $("#status").textContent = "updated " + new Date().toLocaleTimeString();
+        return;
+      }
+      const payload = await api("/api/statistics", {
+        days: $("#stat-days").value,
+        query_tag: $("#stat-query").value,
+      });
+      state.stats = payload;
+      state.statsLoadedAt = Date.now();
+      renderStats(payload);
     } else {
       const payload = await api("/api/prices");
       state.prices = payload.prices || [];
@@ -469,13 +1098,16 @@ async function refresh() {
 }
 
 function switchView(view) {
+  if (view === "statistics" && state.view !== "statistics") state.statsLoadedAt = 0;
   state.view = view;
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.view === view);
   });
   $("#view-listings").hidden = view !== "listings";
+  $("#view-statistics").hidden = view !== "statistics";
   $("#view-prices").hidden = view !== "prices";
   $("#filters-listings").hidden = view !== "listings";
+  $("#filters-statistics").hidden = view !== "statistics";
   refresh();
 }
 
@@ -569,7 +1201,18 @@ document.querySelectorAll(".tab").forEach((tab) => {
   node.addEventListener(event, () => { state.offset = 0; refresh(); });
 });
 
-$("#reload").addEventListener("click", refresh);
+["#stat-days", "#stat-query"].forEach((sel) => {
+  $(sel).addEventListener("change", () => {
+    state.statsLoadedAt = 0;
+    refresh(true);
+  });
+});
+
+$("#reload").addEventListener("click", () => refresh(true));
+$("#stat-reload").addEventListener("click", () => {
+  state.statsLoadedAt = 0;
+  refresh(true);
+});
 $("#prev").addEventListener("click", () => {
   state.offset = Math.max(0, state.offset - state.limit); refresh();
 });
